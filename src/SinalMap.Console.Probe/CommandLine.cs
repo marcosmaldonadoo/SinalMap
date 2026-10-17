@@ -3,7 +3,7 @@ using SinalMap.Application;
 
 namespace SinalMap.Console.Probe;
 
-internal sealed record CommandLine(bool Help, bool List, IPAddress? Target, Guid? InterfaceId, string? Output)
+internal sealed record CommandLine(bool Help, bool List, IPAddress? Target, Guid? InterfaceId, string? Output, string? Analyze = null)
 {
     internal static CommandLine Parse(string[] args)
     {
@@ -11,6 +11,8 @@ internal sealed record CommandLine(bool Help, bool List, IPAddress? Target, Guid
             return new(true, false, null, null, null);
         if (args is ["--list"])
             return new(false, true, null, null, null);
+        if (args is ["--analyze", var path] && !string.IsNullOrWhiteSpace(path) && !path.StartsWith("--", StringComparison.Ordinal))
+            return new(false, false, null, null, null, path);
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
         for (var i = 0; i < args.Length; i++)
         {

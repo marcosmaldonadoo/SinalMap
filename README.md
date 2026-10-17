@@ -55,6 +55,14 @@ O JSON é salvo em `results/` por padrão. `Ctrl+C` cancela a aquisição, aguar
 
 Códigos de saída: `0` sessão concluída com alguma leitura Wi-Fi válida; `1` falha de inicialização ou gravação; `2` argumentos/plataforma inválidos; `3` JSON salvo, mas nenhuma leitura Wi-Fi conectada válida; `130` cancelamento. Timeout ICMP é uma observação, não um erro fatal do programa. O código `0` não significa que a rede está saudável.
 
+## Analisar uma coleta salva
+
+```powershell
+dotnet run --project src/SinalMap.Console.Probe -c Release -- --analyze results/ponto-01.json
+```
+
+O resumo local informa posições, resultados ICMP, estatísticas de RTT/RSSI, disponibilidade das métricas, fontes e ocorrências, sem exibir os identificadores da rede. Funciona também em Linux e preserva o JSON original. Consulte os [critérios, limites e códigos de saída da análise](docs/analise-local.md). O resumo auxilia a inspeção e não substitui a validação em hardware.
+
 ## O que é registrado
 
 | Campo | Origem / significado |

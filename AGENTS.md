@@ -19,3 +19,5 @@ Compilar a solução em Release e executar os testes apropriados antes de entreg
 ## Integração de alterações
 
 O responsável autoriza o merge dos PRs quando o agente considerar a integração necessária, após revisar as mudanças e concluir as verificações pertinentes. Essa autorização dispensa nova confirmação para cada merge. Continuam valendo o escopo da fase atual e a proteção dos dados sensíveis.
+
+Conduzir implementações, revisões e verificações rotineiras de forma autônoma. Solicitar a revisão do responsável antes de integrar grandes mudanças que possam causar problemas, como alterações incompatíveis no formato de dados, mudanças nas permissões ou no comportamento de rede e avanço de fase. Testes físicos que dependem do adaptador do usuário continuam exigindo sua participação; resultados simulados não os substituem.

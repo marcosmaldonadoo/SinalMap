@@ -7,10 +7,12 @@ Ambiente desta implementação: Ubuntu 24.04, linux-x64; SDK .NET 10.0.402 e run
 ## Resultados executados
 
 - Solução completa em Release: compilação aprovada, **0 avisos e 0 erros**.
-- xUnit após a atualização de compatibilidade RSSI: **71 testes aprovados, 0 falhas e 0 ignorados**.
+- xUnit após acrescentar a análise local: **99 testes aprovados, 0 falhas e 0 ignorados** (71 anteriores e 28 novos).
 - Console `--help`: código de saída 0, instruções exibidas.
 - Console `--list` em Linux: código de saída 2 e explicação da exigência do Windows, sem tentar carregar `wlanapi.dll`.
 - Destino em formato hexadecimal: código de saída 2 e rejeição antes da coleta.
+- Console `--analyze` em Linux com o JSON real já fornecido: código 0, estatísticas coerentes com a análise anterior e nenhuma correspondência com os 432 valores privados conferidos. O arquivo e seus identificadores permanecem fora do repositório.
+- Console `--analyze` sem caminho: código 2. Os testes também verificam erros de leitura/formato e cancelamento da análise.
 
 O CI também foi executado no GitHub para o commit `6df6dac93c9f6545104b91dfe5274825a32056f3`: compilação e testes simulados aprovados em **Linux e Windows**. No Windows, os logs confirmam **0 avisos, 0 erros e 56 testes aprovados**. A evidência está na [execução do PR](https://github.com/marcosmaldonadoo/SinalMap/actions/runs/39049062817).
 
@@ -34,6 +36,8 @@ A fronteira WLAN é substituída por uma implementação que aloca buffers nativ
 A atualização RSSI acrescenta testes do retorno 27, da alternativa oficial com um único enlace, da origem do dado, de falhas simultâneas, de buffers e contagens inválidas, da restrição em MLO/vários enlaces e do descarte em mudança de conexão. O suporte da alternativa no adaptador real continua pendente de nova coleta.
 
 O armazenamento é testado quanto a serialização de valores nulos, metadados monotônicos, posições, recusa de sobrescrita e limpeza em cancelamento da escrita. A seleção de interface e a rejeição de destinos ambíguos também são verificadas.
+
+A análise local acrescenta testes de RTT zero e ausente, exclusão de falhas da média de latência, estatísticas de RSSI e suas fontes, tentativa ICMP desconhecida, rota rejeitada e contagem de posições por ocorrência sem duplicação. O leitor e o comando são exercitados com arquivos inválidos, campos obrigatórios ausentes, enumerações inválidas, posição nula, limite de tamanho, cancelamento e preservação dos bytes originais. Os testes de privacidade verificam a omissão de identificadores, caminhos e textos livres.
 
 ## O que esta evidência não valida
 

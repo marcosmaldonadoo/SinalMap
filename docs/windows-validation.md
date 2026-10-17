@@ -34,6 +34,8 @@ Não usar testes de desligamento/roaming em uma conexão que esteja sustentando 
 
 ## Inspeção rápida do JSON em PowerShell
 
+Para obter primeiro um resumo sem identificadores, execute `dotnet run --project src/SinalMap.Console.Probe -c Release -- --analyze results/ponto-01.json`. Os critérios estão no [guia de análise local](analise-local.md). O aceite manual exige examinar os casos deste roteiro; um resumo concluído não os aprova automaticamente.
+
 ```powershell
 $s = Get-Content -Raw results/ponto-01.json | ConvertFrom-Json
 $s.samples.Count  # 60 posições; nem todas necessariamente enviadas
