@@ -1,0 +1,88 @@
+using System.Runtime.InteropServices;
+
+namespace SinalMap.Infrastructure.Windows.Native;
+
+internal sealed class WlanClient : IDisposable
+{
+    private readonly IWlanApi api;
+    private readonly SafeWlanHandle handle;
+
+    internal WlanClient(IWlanApi api)
+    {
+        this.api = api;
+        var code = api.OpenHandle(out var version, out var rawHandle);
+        handle = new(rawHandle, api.CloseHandle);
+        if (code != 0 || handle.IsInvalid || version < 2)
+        {
+            handle.Dispose();
+            if (code != 0)
+                throw new NativeWifiException(code, "WlanOpenHandle");
+            throw NativeWifiException.InvalidData("WlanOpenHandle", "Invalid handle or incompatible negotiated API version.");
+        }
+    }
+
+    internal IReadOnlyList<WlanInterfaceInfo> EnumerateInterfaces()
+    {
+        var code = api.EnumerateInterfaces(handle, out var pointer);
+        using var memory = new SafeWlanMemory(pointer, api.FreeMemory);
+        Check(code, memory, "WlanEnumInterfaces");
+        var count = unchecked((uint)Marshal.ReadInt32(pointer));
+        // This API has no total-size output. Its count is an OS contract; cap it before arithmetic.
+        if (count > 4096)
+            throw NativeWifiException.InvalidData("WlanEnumInterfaces", "Unreasonable interface count.");
+        var size = Marshal.SizeOf<WlanInterfaceInfo>();
+        var result = new List<WlanInterfaceInfo>((int)count);
+        for (var i = 0; i < count; i++)
+            result.Add(Marshal.PtrToStructure<WlanInterfaceInfo>(pointer + checked(8 + i * size)));
+        return result;
+    }
+
+    internal T Query<T>(Guid id, WlanOpcode opcode) where T : unmanaged
+    {
+        var code = api.QueryInterface(handle, id, opcode, out var size, out var pointer);
+        using var memory = new SafeWlanMemory(pointer, api.FreeMemory);
+        Check(code, memory, $"WlanQueryInterface:{opcode}");
+        if (size < Marshal.SizeOf<T>())
+            throw NativeWifiException.InvalidData($"WlanQueryInterface:{opcode}", "Truncated native response.");
+        return Marshal.PtrToStructure<T>(pointer);
+    }
+
+    internal WlanBssEntry? FindConnectedBss(Guid id, WlanConnectionAttributes connection)
+    {
+        var ssid = connection.Association.Ssid;
+        _ = ssid.ToBytes(); // Validate before passing the structure back to native code.
+        var code = api.GetBssList(handle, id, ref ssid, connection.Association.BssType,
+            connection.Security.SecurityEnabled != 0, out var pointer);
+        using var memory = new SafeWlanMemory(pointer, api.FreeMemory);
+        Check(code, memory, "WlanGetNetworkBssList");
+        var totalSize = unchecked((uint)Marshal.ReadInt32(pointer));
+        var count = unchecked((uint)Marshal.ReadInt32(pointer, 4));
+        var entrySize = Marshal.SizeOf<WlanBssEntry>();
+        if (totalSize < 8 || count > (totalSize - 8) / entrySize || count > 65536)
+            throw NativeWifiException.InvalidData("WlanGetNetworkBssList", "BSS count exceeds the returned buffer.");
+        var expectedBssid = connection.Association.Bssid.ToText();
+        var expectedSsid = connection.Association.Ssid.ToBytes();
+        WlanBssEntry? match = null;
+        for (var i = 0; i < count; i++)
+        {
+            var entry = Marshal.PtrToStructure<WlanBssEntry>(pointer + checked(8 + i * entrySize));
+            // Do not read untrusted variable-length information elements at all in Phase 0.
+            if (entry.Bssid.ToText() == expectedBssid &&
+                entry.BssType == connection.Association.BssType &&
+                entry.Ssid.ToBytes().AsSpan().SequenceEqual(expectedSsid) &&
+                (match is null || entry.HostTimestamp > match.Value.HostTimestamp))
+                match = entry;
+        }
+        return match;
+    }
+
+    private static void Check(uint code, SafeWlanMemory memory, string operation)
+    {
+        if (code != 0)
+            throw new NativeWifiException(code, operation);
+        if (memory.IsInvalid)
+            throw NativeWifiException.InvalidData(operation, "Native API returned a null buffer on success.");
+    }
+
+    public void Dispose() => handle.Dispose();
+}
