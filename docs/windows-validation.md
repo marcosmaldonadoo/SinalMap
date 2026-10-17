@@ -1,8 +1,8 @@
 # Validação manual da coleta no Windows
 
-**Estado: pendente de execução em hardware real.** Testes simulados e runners hospedados não validam recepção Wi-Fi, comportamento de um driver específico ou precisão de RSSI.
+**Estado: coleta básica em hardware real examinada e aprovada; casos adicionais pendentes.** O [registro da análise de uma sessão estável](validacao-coleta-estavel.md) documenta a coleta com o adaptador MediaTek Wi-Fi 6 MT7921. Testes simulados e runners hospedados continuam distintos dessa evidência e não certificam precisão de RSSI.
 
-Não avançar para WPF antes de examinar essa coleta. Ausência de uma métrica por limitação do driver pode ser aceita se estiver representada como ausência com causa, sem dados estimados.
+Não avançar para WPF antes de concluir este roteiro e registrar o aceite. Ausência de uma métrica por limitação do driver pode ser aceita se estiver representada como ausência com causa, sem dados estimados.
 
 ## Preparação
 
@@ -17,6 +17,7 @@ Não avançar para WPF antes de examinar essa coleta. Ausência de uma métrica 
 | Caso | Procedimento | Evidência esperada |
 |---|---|---|
 | Coleta estável | Parado perto do AP, executar 60 s contra o gateway | 60 posições planejadas, timestamps monotônicos crescentes e campos retornados pelo driver com fontes |
+| Locais diferentes | Fazer coletas separadas em dois locais, mantendo o destino e registrando a conexão observada | Examinar valores e distribuição de RSSI/latência; não exigir uma variação predeterminada nem tratar constância como erro sem contexto |
 | Campos sem suporte | Examinar os resultados do driver | `null` com erro específico; ausência de RSSI estimado ou canal derivado |
 | Primeira consulta de RSSI falha | Examinar os contadores, `rssiSource` e `issues` | Fonte alternativa identificada se houver retorno válido; se ambas falharem, RSSI nulo com os códigos preservados |
 | Cache de frequência | Examinar `frequencySource` e FILETIME BSS | Frequência identificada como cache; não descrita como recepção nova a cada segundo |
@@ -58,12 +59,14 @@ Os ticks devem ser interpretados com `$s.monotonicFrequency`. Compare SSID/BSSID
 
 ## Registro do aceite
 
-- [ ] Compilação Release e testes automatizados passaram.
-- [ ] Coleta real de 60 s examinada, com versão do Windows/adaptador/driver anotados.
+- [x] Compilação Release e testes automatizados passaram.
+- [x] Coleta real de 60 s examinada, com identificação do SO e modelo do adaptador registrados.
+- [ ] Versão do driver registrada para reproduzir a compatibilidade.
+- [ ] Comportamento do RSSI em locais diferentes examinado.
 - [ ] Permissões e campos indisponíveis representados corretamente.
 - [ ] Cancelamento e gravação parcial verificados.
 - [ ] Roteamento por outra interface rejeitado no cenário de teste.
-- [ ] Cache BSS e limitações de temporização compreendidos.
+- [x] Cache BSS e temporização da coleta examinados no JSON.
 - [ ] Decisão registrada sobre o que o driver permite coletar na próxima fase.
 
 Os JSONs da validação devem continuar locais até revisão dos identificadores de rede. Não preencher este checklist com resultados simulados.

@@ -14,6 +14,8 @@ Ambiente desta implementação: Ubuntu 24.04, linux-x64; SDK .NET 10.0.402 e run
 
 O CI também foi executado no GitHub para o commit `6df6dac93c9f6545104b91dfe5274825a32056f3`: compilação e testes simulados aprovados em **Linux e Windows**. No Windows, os logs confirmam **0 avisos, 0 erros e 56 testes aprovados**. A evidência está na [execução do PR](https://github.com/marcosmaldonadoo/SinalMap/actions/runs/39049062817).
 
+A atualização de compatibilidade RSSI, commit `23941e67b6300981b98d70a8831ec7602d821ee6`, também teve compilação e testes aprovados em Linux e Windows: [execução do CI](https://github.com/marcosmaldonadoo/SinalMap/actions/runs/39055778918).
+
 Comandos usados para compilação e testes neste ambiente:
 
 ```text
@@ -35,6 +37,8 @@ O armazenamento é testado quanto a serialização de valores nulos, metadados m
 
 ## O que esta evidência não valida
 
-Não foi feita coleta RF neste ambiente Linux. Uma execução no Windows foi relatada pelo usuário com conexão/ICMP concluídos e erro na primeira consulta RSSI; os limites dessa evidência estão no [registro da primeira coleta](primeira-coleta-windows.md). O JSON ainda não foi inspecionado, e a disponibilidade individual de RSSI/canal/frequência não foi confirmada. Permissões, roaming físico e caminho efetivo dos pacotes continuam dependendo dos casos de validação.
+Não foi feita coleta RF neste ambiente Linux. O usuário forneceu um JSON de uma execução real no Windows, e sua análise confirmou a coleta básica com 60 respostas ICMP, RSSI de −67 dBm, canal e frequência em todas as amostras, sem erros registrados. A fonte RSSI foi a consulta principal, e a alternativa não foi utilizada: consulte a [validação da coleta estável](validacao-coleta-estavel.md).
+
+A precisão/calibração do driver, a resposta do RSSI à mudança física de local, permissões, cancelamento, roaming físico e caminho efetivo dos pacotes continuam dependendo dos casos de validação. O [registro da primeira execução](primeira-coleta-windows.md) preserva o contexto do retorno 27, que não reapareceu no arquivo analisado.
 
 Consulte as verificações do PR para o estado do commit mais recente. Mesmo com o CI aprovado em Linux e Windows, o [roteiro manual no Windows](windows-validation.md) continua obrigatório antes de iniciar WPF.

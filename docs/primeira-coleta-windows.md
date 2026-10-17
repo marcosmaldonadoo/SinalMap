@@ -22,8 +22,10 @@ O código 27 foi retornado na operação `WlanQueryInterface:Rssi`. A descriçã
 
 Foi acrescentada uma tentativa de RSSI por `wlan_intf_opcode_realtime_connection_quality` após erros nativos ou falta de suporte da primeira consulta. Ela utiliza exclusivamente o `lRssi` retornado pelo driver, com fonte identificada, em conexão não MLO de enlace único. Não utiliza o RSSI do cache BSS nem converte percentuais em dBm. Ambas as tentativas podem falhar; nesse caso, o campo permanece nulo com os motivos.
 
-O console também passou a contar separadamente as posições com RSSI, canal e frequência em cache. A compatibilidade da alternativa com esse adaptador ainda depende de uma nova execução; testes simulados não comprovam esse suporte.
+O console também passou a contar separadamente as posições com RSSI, canal e frequência em cache. A compatibilidade da alternativa com esse adaptador não foi comprovada: na coleta seguinte, examinada em JSON, a primeira consulta RSSI funcionou nas 60 amostras e a alternativa não foi utilizada.
 
 ## Continuação da validação
 
-Repetir a coleta após atualizar a branch. Examinar os contadores e os campos `rssiDbm`, `rssiSource` e `issues` no JSON local. Registrar versão/build do Windows e versão do driver quando forem conhecidas. Os demais casos do [roteiro de validação](windows-validation.md), incluindo cancelamento, desconexão e roteamento, continuam pendentes.
+A repetição foi realizada e seu JSON foi examinado: consulte a [validação da coleta estável](validacao-coleta-estavel.md). O arquivo confirma RSSI, canal e frequência disponíveis nas 60 amostras, com as fontes identificadas e sem erros. O erro 27 não reapareceu nessa execução; sua causa permanece indeterminada.
+
+Registrar a versão do driver quando conhecida. Os demais casos do [roteiro de validação](windows-validation.md), incluindo locais diferentes, cancelamento, desconexão e roteamento, continuam pendentes.

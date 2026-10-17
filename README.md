@@ -82,7 +82,9 @@ Leia o [plano da Fase 0](docs/phase-0-plan.md), as [limitações e APIs](docs/ap
 
 ## Estado da validação
 
-A validação automatizada usa adaptadores simulados e não comprova coleta de rádio em hardware real. A execução manual no Windows, com o adaptador e o driver utilizados no suporte técnico, continua sendo um critério obrigatório antes de avançar à interface gráfica. O checklist em `docs/windows-validation.md` permanece pendente até existir evidência dessa execução.
+A validação automatizada usa adaptadores simulados. Uma [coleta básica real de 60 s foi examinada e aprovada no MediaTek Wi-Fi 6 MT7921](docs/validacao-coleta-estavel.md), com RSSI, canal, frequência em cache e ICMP registrados sem erros. Nessa execução, o RSSI veio da consulta principal; a alternativa não foi utilizada.
+
+Os testes em locais diferentes, cancelamento e demais cenários do [roteiro no Windows](docs/windows-validation.md) continuam pendentes antes de avançar à interface gráfica. A análise de uma sessão não certifica precisão de RSSI nem compatibilidade universal de drivers.
 
 ## Privacidade e licença
 
