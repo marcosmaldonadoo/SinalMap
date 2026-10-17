@@ -13,6 +13,9 @@ public sealed class NativeWifiException : Exception
     internal static NativeWifiException InvalidData(string operation, string message) =>
         new(new ProbeIssue(IssueKind.InvalidData, operation, message));
 
+    internal static NativeWifiException NotSupported(string operation, string message) =>
+        new(new ProbeIssue(IssueKind.NotSupported, operation, message));
+
     private static ProbeIssue ToIssue(uint code, string operation)
     {
         var kind = code switch
@@ -25,6 +28,8 @@ public sealed class NativeWifiException : Exception
             _ => IssueKind.NativeError
         };
         var message = new Win32Exception(unchecked((int)code)).Message;
+        if (code == 27 && operation == "WlanQueryInterface:Rssi")
+            message += " Retorno da consulta Wi-Fi de RSSI. A causa não foi determinada; esta mensagem isolada não comprova falha de disco.";
         if (code == 5)
             message += " Check Windows Settings > Privacy & security > Location and desktop app access. Administrator rights do not replace location consent.";
         return new(kind, operation, message, code);

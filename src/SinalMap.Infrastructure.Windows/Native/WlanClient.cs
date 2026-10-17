@@ -47,6 +47,28 @@ internal sealed class WlanClient : IDisposable
         return Marshal.PtrToStructure<T>(pointer);
     }
 
+    internal int QuerySingleLinkRealtimeRssi(Guid id)
+    {
+        const string operation = "WlanQueryInterface:RealtimeConnectionQuality";
+        var code = api.QueryInterface(handle, id, WlanOpcode.RealtimeConnectionQuality, out var size, out var pointer);
+        using var memory = new SafeWlanMemory(pointer, api.FreeMemory);
+        Check(code, memory, operation);
+
+        var headerSize = Marshal.SizeOf<WlanRealtimeConnectionQualityHeader>();
+        var linkSize = Marshal.SizeOf<WlanRealtimeConnectionQualityLinkInfo>();
+        if (size < headerSize)
+            throw NativeWifiException.InvalidData(operation, "Cabeçalho da qualidade em tempo real truncado.");
+        var header = Marshal.PtrToStructure<WlanRealtimeConnectionQualityHeader>(pointer);
+        if (header.NumberOfLinks == 0 || header.NumberOfLinks > (size - headerSize) / linkSize)
+            throw NativeWifiException.InvalidData(operation, "A quantidade de enlaces não cabe no buffer retornado.");
+
+        // A Fase 0 não escolhe o enlace mais forte nem calcula uma média para representar o BSSID.
+        if (header.IsMloConnection != 0 || header.NumberOfLinks != 1)
+            throw NativeWifiException.NotSupported(operation,
+                "A alternativa de RSSI exige uma conexão não MLO com um único enlace; o valor permanece indisponível.");
+        return Marshal.PtrToStructure<WlanRealtimeConnectionQualityLinkInfo>(pointer + headerSize).Rssi;
+    }
+
     internal WlanBssEntry? FindConnectedBss(Guid id, WlanConnectionAttributes connection)
     {
         var ssid = connection.Association.Ssid;

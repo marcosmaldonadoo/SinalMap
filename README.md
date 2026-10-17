@@ -55,7 +55,7 @@ Códigos de saída: `0` sessão concluída com alguma leitura Wi-Fi válida; `1`
 |---|---|
 | Interface | GUID, descrição e estado de `WlanEnumInterfaces` |
 | SSID e BSSID | `WlanQueryInterface(current_connection)`; SSID preservado também em hexadecimal, sem assumir que todos os SSIDs são UTF-8 |
-| RSSI, em dBm | `WlanQueryInterface(rssi)`; não convertido de qualidade percentual |
+| RSSI, em dBm | `WlanQueryInterface(rssi)`; em falha compatível, tentar `realtime_connection_quality` somente para conexão não MLO de enlace único. A fonte é registrada; não converter qualidade percentual |
 | Canal | `WlanQueryInterface(channel_number)`; não inferido da frequência |
 | Frequência, em kHz | Entrada **em cache** de `WlanGetNetworkBssList`, com correspondência de SSID em bytes, BSSID e tipo BSS |
 | Idade da informação BSS | Timestamp de recepção fornecido pelo driver, em FILETIME bruto; não representa o horário da consulta atual |
@@ -65,6 +65,8 @@ Códigos de saída: `0` sessão concluída com alguma leitura Wi-Fi válida; `1`
 | Mudanças de BSSID | Mudanças observadas entre amostras, com indicação de lacunas e de SSID diferente |
 
 Cada campo opcional sem suporte permanece **`null`**, com motivo em `issues`. Não há medições geradas ou modo de demonstração no executável. Dados sintéticos existem exclusivamente nos testes.
+
+O console informa separadamente quantas posições têm RSSI, canal e frequência disponíveis. **Uma leitura da conexão Wi-Fi não garante que todos esses campos foram obtidos.** Se a primeira consulta de RSSI falhar e a alternativa funcionar, o erro original permanece em `issues` e `rssiSource` identifica a consulta que forneceu o valor. Se ambas falharem, RSSI e fonte ficam nulos.
 
 Antes de cada ping, a rota deve apontar para o adaptador Wi-Fi selecionado. Caso contrário, o envio é bloqueado e registrado como `RouteRejected`. A verificação não fixa a rota: uma mudança entre a checagem e o envio ainda é possível. `SendAttempted=true` indica chamada à API, não captura de um pacote no rádio; `null` indica que um adaptador lançou uma exceção e não confirmou se tentou enviar.
 

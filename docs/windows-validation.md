@@ -18,6 +18,7 @@ Não avançar para WPF antes de examinar essa coleta. Ausência de uma métrica 
 |---|---|---|
 | Coleta estável | Parado perto do AP, executar 60 s contra o gateway | 60 posições planejadas, timestamps monotônicos crescentes e campos retornados pelo driver com fontes |
 | Campos sem suporte | Examinar os resultados do driver | `null` com erro específico; ausência de RSSI estimado ou canal derivado |
+| Primeira consulta de RSSI falha | Examinar os contadores, `rssiSource` e `issues` | Fonte alternativa identificada se houver retorno válido; se ambas falharem, RSSI nulo com os códigos preservados |
 | Cache de frequência | Examinar `frequencySource` e FILETIME BSS | Frequência identificada como cache; não descrita como recepção nova a cada segundo |
 | Alvo que não responde ICMP | Usar um destino conhecido que bloqueie ICMP na rede de teste | `TimedOut`/status de erro e RTT nulo; não transformar isso em diagnóstico de sinal |
 | Permissão negada | Desativar o consentimento de localização e executar se a versão do Windows aplicar a restrição | Código 5 e orientação; SSID/BSSID não fabricados. Se a API não bloquear nessa versão, registrar esse fato |

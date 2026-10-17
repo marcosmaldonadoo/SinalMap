@@ -66,6 +66,10 @@ internal static class Program
             var success = session.Samples.Count(s => s.Icmp?.Outcome == IcmpOutcome.Success);
             var observed = session.Samples.Count(s => s.Wifi?.State == WifiConnectionState.Connected);
             Terminal.WriteLine($"Posições: {session.Samples.Count}; chamadas ICMP: {sent}; respostas com sucesso: {success}; leituras Wi-Fi: {observed}; mudanças de BSSID observadas: {session.BssidChanges.Count}.");
+            var rssiAvailable = session.Samples.Count(s => s.Wifi?.RssiDbm is not null);
+            var channelAvailable = session.Samples.Count(s => s.Wifi?.Channel is not null);
+            var frequencyAvailable = session.Samples.Count(s => s.Wifi?.FrequencyKHz is not null);
+            Terminal.WriteLine($"Métricas disponíveis por posição: RSSI {rssiAvailable}/{session.Samples.Count}; canal {channelAvailable}/{session.Samples.Count}; frequência em cache {frequencyAvailable}/{session.Samples.Count}.");
             foreach (var issue in session.Samples.SelectMany(s => s.Issues
                          .Concat(s.Wifi?.Issues ?? [])
                          .Concat(s.Icmp?.Issue is { } pingIssue ? [pingIssue] : Array.Empty<ProbeIssue>()))

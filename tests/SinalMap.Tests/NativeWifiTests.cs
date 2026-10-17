@@ -17,6 +17,10 @@ public sealed class NativeWifiTests
         Assert.Equal(68, Marshal.SizeOf<WlanAssociationAttributes>());
         Assert.Equal(604, Marshal.SizeOf<WlanConnectionAttributes>());
         Assert.Equal(360, Marshal.SizeOf<WlanBssEntry>());
+        Assert.Equal(24, Marshal.SizeOf<WlanRealtimeConnectionQualityHeader>());
+        Assert.Equal(272, Marshal.SizeOf<WlanRealtimeConnectionQualityLinkInfo>());
+        Assert.Equal(12, Marshal.OffsetOf<WlanRealtimeConnectionQualityLinkInfo>(nameof(WlanRealtimeConnectionQualityLinkInfo.Rssi)).ToInt32());
+        Assert.Equal(19u, (uint)WlanOpcode.RealtimeConnectionQuality);
         Assert.Equal(64, Marshal.OffsetOf<WlanBssEntry>(nameof(WlanBssEntry.InRegDomain)).ToInt32());
         Assert.Equal(80, Marshal.OffsetOf<WlanBssEntry>(nameof(WlanBssEntry.HostTimestamp)).ToInt32());
         Assert.Equal(92, Marshal.OffsetOf<WlanBssEntry>(nameof(WlanBssEntry.CenterFrequencyKHz)).ToInt32());
@@ -42,6 +46,7 @@ public sealed class NativeWifiTests
         Assert.Equal(134116992000000000ul, result.BssHostTimestampFileTime);
         Assert.Contains("cached", result.FrequencySource!);
         Assert.Empty(result.Issues);
+        Assert.DoesNotContain(WlanOpcode.RealtimeConnectionQuality, api.Queries);
         Assert.Equal(api.AllocationCount, api.FreeCount);
         Assert.Equal(1, api.CloseCount);
     }
@@ -56,7 +61,7 @@ public sealed class NativeWifiTests
         Assert.Null(result.RssiDbm); // SignalQuality=90 não deve ser convertido em um RSSI apresentado como medido.
         Assert.Null(result.Channel); // 2437000 kHz não deve ser convertido silenciosamente em canal 6.
         Assert.Equal(2437000u, result.FrequencyKHz);
-        Assert.Equal(2, result.Issues.Count(i => i.Kind == IssueKind.NotSupported));
+        Assert.Equal(3, result.Issues.Count(i => i.Kind == IssueKind.NotSupported));
         Assert.Equal(api.AllocationCount, api.FreeCount);
     }
 
@@ -265,6 +270,130 @@ public sealed class NativeWifiTests
         await api.Closed.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(api.AllocationCount, api.FreeCount);
         Assert.Equal(1, api.CloseCount);
+    }
+
+    [Theory]
+    [InlineData(27u)]
+    [InlineData(50u)]
+    public async Task Realtime_single_link_recovers_driver_RSSI_and_preserves_the_primary_error(uint primaryCode)
+    {
+        var api = new FakeWlanApi();
+        api.QueryErrors[WlanOpcode.Rssi] = primaryCode;
+        api.QueryErrors[WlanOpcode.RealtimeConnectionQuality] = 0;
+        var result = await Monitor(api).ReadAsync(TestData.InterfaceId, CancellationToken.None);
+        Assert.Equal(WifiConnectionState.Connected, result.State);
+        Assert.Equal(-64, result.RssiDbm);
+        Assert.Equal("WlanQueryInterface:realtime_connection_quality.linksInfo[0].lRssi", result.RssiSource);
+        Assert.Contains(result.Issues, i => i.Operation == "WlanQueryInterface:Rssi" && i.NativeCode == primaryCode);
+        Assert.Equal(api.AllocationCount, api.FreeCount);
+        Assert.Equal(1, api.CloseCount);
+    }
+
+    [Fact]
+    public async Task Both_RSSI_queries_failing_leave_null_with_both_original_codes()
+    {
+        var api = new FakeWlanApi();
+        api.QueryErrors[WlanOpcode.Rssi] = 27;
+        var result = await Monitor(api).ReadAsync(TestData.InterfaceId, CancellationToken.None);
+        Assert.Null(result.RssiDbm);
+        Assert.Null(result.RssiSource);
+        Assert.Contains(result.Issues, i => i.Kind == IssueKind.NativeError && i.NativeCode == 27);
+        Assert.Contains(result.Issues, i => i.Kind == IssueKind.NotSupported && i.NativeCode == 50);
+        Assert.Equal(api.AllocationCount, api.FreeCount);
+    }
+
+    [Fact]
+    public async Task RSSI_permission_failure_does_not_attempt_an_alternative_query()
+    {
+        var api = new FakeWlanApi();
+        api.QueryErrors[WlanOpcode.Rssi] = 5;
+        api.QueryErrors[WlanOpcode.RealtimeConnectionQuality] = 0;
+        var result = await Monitor(api).ReadAsync(TestData.InterfaceId, CancellationToken.None);
+        Assert.Null(result.RssiDbm);
+        Assert.DoesNotContain(WlanOpcode.RealtimeConnectionQuality, api.Queries);
+        Assert.Contains(result.Issues, i => i.Kind == IssueKind.PermissionDenied && i.NativeCode == 5);
+    }
+
+    [Theory]
+    [InlineData(0u)]
+    [InlineData(23u)]
+    [InlineData(24u)]
+    [InlineData(295u)]
+    public async Task Realtime_truncated_buffers_are_rejected_and_freed(uint declaredSize)
+    {
+        var api = new FakeWlanApi();
+        api.QueryErrors[WlanOpcode.Rssi] = 27;
+        api.QueryErrors[WlanOpcode.RealtimeConnectionQuality] = 0;
+        api.DeclaredQuerySizes[WlanOpcode.RealtimeConnectionQuality] = declaredSize;
+        var result = await Monitor(api).ReadAsync(TestData.InterfaceId, CancellationToken.None);
+        Assert.Null(result.RssiDbm);
+        Assert.Contains(result.Issues, i => i.Kind == IssueKind.InvalidData && i.Operation.Contains("RealtimeConnectionQuality"));
+        Assert.Equal(api.AllocationCount, api.FreeCount);
+    }
+
+    [Theory]
+    [InlineData(0u)]
+    [InlineData(2u)]
+    [InlineData(uint.MaxValue)]
+    public async Task Realtime_invalid_link_counts_do_not_read_outside_the_buffer(uint count)
+    {
+        var api = new FakeWlanApi { RealtimeDeclaredLinkCount = count };
+        api.QueryErrors[WlanOpcode.Rssi] = 27;
+        api.QueryErrors[WlanOpcode.RealtimeConnectionQuality] = 0;
+        var result = await Monitor(api).ReadAsync(TestData.InterfaceId, CancellationToken.None);
+        Assert.Null(result.RssiDbm);
+        Assert.Contains(result.Issues, i => i.Kind == IssueKind.InvalidData && i.Operation.Contains("RealtimeConnectionQuality"));
+        Assert.Equal(api.AllocationCount, api.FreeCount);
+    }
+
+    [Fact]
+    public async Task Multiple_links_do_not_pick_the_strongest_RSSI_or_compute_an_average()
+    {
+        var api = new FakeWlanApi { RealtimeLinks = [new() { Rssi = -80 }, new() { Rssi = -40 }] };
+        api.QueryErrors[WlanOpcode.Rssi] = 27;
+        api.QueryErrors[WlanOpcode.RealtimeConnectionQuality] = 0;
+        var result = await Monitor(api).ReadAsync(TestData.InterfaceId, CancellationToken.None);
+        Assert.Null(result.RssiDbm);
+        Assert.Null(result.RssiSource);
+        Assert.Contains(result.Issues, i => i.Kind == IssueKind.NotSupported && i.Operation.Contains("RealtimeConnectionQuality"));
+        Assert.Equal(api.AllocationCount, api.FreeCount);
+    }
+
+    [Fact]
+    public async Task MLO_with_one_reported_link_is_also_rejected_as_ambiguous()
+    {
+        var api = new FakeWlanApi { RealtimeIsMlo = 1 };
+        api.QueryErrors[WlanOpcode.Rssi] = 27;
+        api.QueryErrors[WlanOpcode.RealtimeConnectionQuality] = 0;
+        var result = await Monitor(api).ReadAsync(TestData.InterfaceId, CancellationToken.None);
+        Assert.Null(result.RssiDbm);
+        Assert.Contains(result.Issues, i => i.Kind == IssueKind.NotSupported && i.Operation.Contains("RealtimeConnectionQuality"));
+    }
+
+    [Fact]
+    public async Task Realtime_null_response_is_rejected_without_dereferencing_it()
+    {
+        var api = new FakeWlanApi();
+        api.QueryErrors[WlanOpcode.Rssi] = 27;
+        api.QueryErrors[WlanOpcode.RealtimeConnectionQuality] = 0;
+        api.NullQueryOpcodes.Add(WlanOpcode.RealtimeConnectionQuality);
+        var result = await Monitor(api).ReadAsync(TestData.InterfaceId, CancellationToken.None);
+        Assert.Null(result.RssiDbm);
+        Assert.Contains(result.Issues, i => i.Kind == IssueKind.InvalidData && i.Operation.Contains("RealtimeConnectionQuality"));
+        Assert.Equal(api.AllocationCount, api.FreeCount);
+    }
+
+    [Fact]
+    public async Task Roaming_also_discards_RSSI_obtained_from_the_alternative_query()
+    {
+        var api = new FakeWlanApi { ConnectionAtRead = i => FakeWlanApi.Connected(i == 0 ? "020000000001" : "020000000002") };
+        api.QueryErrors[WlanOpcode.Rssi] = 27;
+        api.QueryErrors[WlanOpcode.RealtimeConnectionQuality] = 0;
+        var result = await Monitor(api).ReadAsync(TestData.InterfaceId, CancellationToken.None);
+        Assert.Equal(WifiConnectionState.Unavailable, result.State);
+        Assert.Null(result.RssiDbm);
+        Assert.Null(result.RssiSource);
+        Assert.Equal(api.AllocationCount, api.FreeCount);
     }
 
     private static WindowsWifiMonitor Monitor(FakeWlanApi api) => new(api, new ManualClock());

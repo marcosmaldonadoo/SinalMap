@@ -7,7 +7,13 @@ internal enum WlanInterfaceState : uint
     NotReady, Connected, AdHocNetworkFormed, Disconnecting, Disconnected, Associating, Discovering, Authenticating
 }
 
-internal enum WlanOpcode : uint { CurrentConnection = 7, ChannelNumber = 8, Rssi = 0x10000102 }
+internal enum WlanOpcode : uint
+{
+    CurrentConnection = 7,
+    ChannelNumber = 8,
+    RealtimeConnectionQuality = 19,
+    Rssi = 0x10000102
+}
 internal enum Dot11BssType : uint { Infrastructure = 1, Independent = 2, Any = 3 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 8)]
@@ -112,6 +118,28 @@ internal unsafe struct WlanRateSet
 {
     public uint Length;
     public fixed ushort Rates[126];
+}
+
+// O cabeçalho tem 24 bytes; os enlaces são uma matriz variável após esse cabeçalho.
+[StructLayout(LayoutKind.Sequential, Pack = 8)]
+internal struct WlanRealtimeConnectionQualityHeader
+{
+    public uint PhyType;
+    public uint LinkQuality;
+    public uint RxRate;
+    public uint TxRate;
+    public int IsMloConnection;
+    public uint NumberOfLinks;
+}
+
+[StructLayout(LayoutKind.Sequential, Pack = 8)]
+internal struct WlanRealtimeConnectionQualityLinkInfo
+{
+    public byte LinkId;
+    public uint ChannelCenterFrequencyMhz;
+    public uint Bandwidth;
+    public int Rssi;
+    public WlanRateSet RateSet;
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 8)]

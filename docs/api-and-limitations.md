@@ -12,7 +12,9 @@ Os retornos WLAN são códigos Win32 diretos. Não se usa `Marshal.GetLastWin32E
 
 | Dado / caso | Comportamento da Fase 0 |
 |---|---|
-| RSSI não suportado | `rssiDbm=null`; não converter a qualidade percentual da conexão |
+| Primeira consulta de RSSI falha | Preservar operação/código e tentar a consulta em tempo real em falhas nativas ou de suporte, sem converter qualidade percentual |
+| Ambas as consultas de RSSI indisponíveis | `rssiDbm=null` e `rssiSource=null`, com os motivos preservados |
+| RSSI alternativo em conexão MLO ou com vários enlaces | Manter nulo; não escolher o maior valor nem calcular média |
 | Canal indisponível ou zero | `channel=null`; não converter da frequência |
 | Frequência sem BSS correspondente | `frequencyKHz=null`; não escolher uma entrada vizinha |
 | Frequência de PHY FHSS / retorno zero | Ausente, com motivo; campo não é válido para FHSS |
@@ -26,6 +28,16 @@ Os retornos WLAN são códigos Win32 diretos. Não se usa `Marshal.GetLastWin32E
 | Posição perdida / cancelada antes de iniciar | Wi-Fi/ICMP nulos e disposição explícita; não contar como pacote perdido |
 
 `bssHostTimestampFileTime` é um inteiro fornecido pelo driver em intervalos de 100 ns desde 1601, distinto dos ticks monotônicos da aplicação. Não se calcula frequência a partir de canal, nem canal a partir de frequência. O monitor não força `WlanScan`, não muda SSID e não configura rádio, canal, potência ou domínio regulatório.
+
+## Compatibilidade da consulta de RSSI
+
+O caminho principal consulta `wlan_intf_opcode_rssi`. Se retornar erro nativo, inclusive o código 27, ou informar falta de suporte, o monitor tenta `wlan_intf_opcode_realtime_connection_quality`. Essa alternativa utiliza somente `lRssi`, em dBm, retornado para uma conexão não MLO com exatamente um enlace. O cabeçalho, a quantidade de enlaces e o tamanho do buffer são validados antes de ler o valor. O RSSI do cache BSS não preenche esse campo.
+
+Erros de permissão, estado da conexão ou integridade do retorno principal não acionam a alternativa. As consultas antes/depois da identidade continuam envolvendo a leitura, e uma mudança detectada descarta também o RSSI obtido pela alternativa. O suporte depende da versão do Windows e do driver; a existência da API não garante que funcione em um dispositivo específico.
+
+`rssiSource` será `WlanQueryInterface:rssi` ou `WlanQueryInterface:realtime_connection_quality.linksInfo[0].lRssi`. O erro da primeira tentativa permanece registrado mesmo se a segunda conseguir obter o dado. Os outros campos da estrutura de qualidade em tempo real não são usados para preencher canal ou frequência nesta fase.
+
+O texto de erro do código 27 é uma descrição Win32 genérica. Quando recebido pela consulta WLAN de RSSI, esse texto isolado não comprova uma falha de armazenamento e não determina a causa no driver. Não se muda seu código para “não suportado” sem evidência.
 
 ## Temporização e paralelismo
 
@@ -64,6 +76,8 @@ O JSON inclui os valores nulos e enums textuais, com `schemaVersion=1`. Ele é s
 - [WlanEnumInterfaces](https://learn.microsoft.com/en-us/windows/win32/api/wlanapi/nf-wlanapi-wlanenuminterfaces)
 - [WlanQueryInterface](https://learn.microsoft.com/en-us/windows/win32/api/wlanapi/nf-wlanapi-wlanqueryinterface)
 - [WLAN_INTF_OPCODE](https://learn.microsoft.com/en-us/windows/win32/api/wlanapi/ne-wlanapi-wlan_intf_opcode)
+- [WLAN_REALTIME_CONNECTION_QUALITY](https://learn.microsoft.com/en-us/windows/win32/api/wlanapi/ns-wlanapi-wlan_realtime_connection_quality)
+- [WLAN_REALTIME_CONNECTION_QUALITY_LINK_INFO](https://learn.microsoft.com/en-us/windows/win32/api/wlanapi/ns-wlanapi-wlan_realtime_connection_quality_link_info)
 - [WlanGetNetworkBssList](https://learn.microsoft.com/en-us/windows/win32/api/wlanapi/nf-wlanapi-wlangetnetworkbsslist)
 - [WLAN_BSS_ENTRY](https://learn.microsoft.com/en-us/windows/win32/api/wlanapi/ns-wlanapi-wlan_bss_entry)
 - [WlanFreeMemory](https://learn.microsoft.com/en-us/windows/win32/api/wlanapi/nf-wlanapi-wlanfreememory)

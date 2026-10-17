@@ -7,7 +7,7 @@ Ambiente desta implementação: Ubuntu 24.04, linux-x64; SDK .NET 10.0.402 e run
 ## Resultados executados
 
 - Solução completa em Release: compilação aprovada, **0 avisos e 0 erros**.
-- xUnit: **56 testes aprovados, 0 falhas e 0 ignorados**.
+- xUnit após a atualização de compatibilidade RSSI: **71 testes aprovados, 0 falhas e 0 ignorados**.
 - Console `--help`: código de saída 0, instruções exibidas.
 - Console `--list` em Linux: código de saída 2 e explicação da exigência do Windows, sem tentar carregar `wlanapi.dll`.
 - Destino em formato hexadecimal: código de saída 2 e rejeição antes da coleta.
@@ -29,10 +29,12 @@ Os testes verificam agenda absoluta de 60 posições, conclusão da janela, atra
 
 A fronteira WLAN é substituída por uma implementação que aloca buffers nativos simulados. São exercitados layouts ABI, listas vazias, retorno nulo, dados truncados, contagens incompatíveis com o tamanho BSS, SSID inválido em tamanho ou não UTF-8, campo sem suporte, permissões negadas, mudança durante a leitura, propriedade do handle durante timeout e liberação dos recursos.
 
+A atualização RSSI acrescenta testes do retorno 27, da alternativa oficial com um único enlace, da origem do dado, de falhas simultâneas, de buffers e contagens inválidas, da restrição em MLO/vários enlaces e do descarte em mudança de conexão. O suporte da alternativa no adaptador real continua pendente de nova coleta.
+
 O armazenamento é testado quanto a serialização de valores nulos, metadados monotônicos, posições, recusa de sobrescrita e limpeza em cancelamento da escrita. A seleção de interface e a rejeição de destinos ambíguos também são verificadas.
 
 ## O que esta evidência não valida
 
-Não foi feita coleta RF neste ambiente Linux. Não há evidência de RSSI/canal/frequência retornados por um adaptador real, permissão de localização em uma instalação real do Windows, roaming físico ou caminho efetivo de pacotes na rede do usuário.
+Não foi feita coleta RF neste ambiente Linux. Uma execução no Windows foi relatada pelo usuário com conexão/ICMP concluídos e erro na primeira consulta RSSI; os limites dessa evidência estão no [registro da primeira coleta](primeira-coleta-windows.md). O JSON ainda não foi inspecionado, e a disponibilidade individual de RSSI/canal/frequência não foi confirmada. Permissões, roaming físico e caminho efetivo dos pacotes continuam dependendo dos casos de validação.
 
 Consulte as verificações do PR para o estado do commit mais recente. Mesmo com o CI aprovado em Linux e Windows, o [roteiro manual no Windows](windows-validation.md) continua obrigatório antes de iniciar WPF.

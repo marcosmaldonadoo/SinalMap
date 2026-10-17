@@ -14,6 +14,7 @@ internal sealed class FakeWlanApi : IWlanApi
     public uint? BssDeclaredSize { get; set; }
     public uint? BssDeclaredCount { get; set; }
     public bool NullQueryPointer { get; set; }
+    public HashSet<WlanOpcode> NullQueryOpcodes { get; } = [];
     public int CloseCount;
     public int FreeCount;
     public int AllocationCount;
@@ -26,6 +27,9 @@ internal sealed class FakeWlanApi : IWlanApi
     public Func<int, WlanConnectionAttributes>? ConnectionAtRead { get; set; }
     public int Rssi { get; set; } = -55;
     public uint Channel { get; set; } = 6;
+    public int RealtimeIsMlo { get; set; }
+    public uint? RealtimeDeclaredLinkCount { get; set; }
+    public WlanRealtimeConnectionQualityLinkInfo[] RealtimeLinks { get; set; } = [new() { Rssi = -64 }];
     public WlanInterfaceInfo[] Interfaces { get; set; } =
         [new() { Id = TestData.InterfaceId, State = WlanInterfaceState.Connected }];
     public WlanBssEntry[] BssEntries { get; set; } = [Bss()];
@@ -65,11 +69,13 @@ internal sealed class FakeWlanApi : IWlanApi
                 break;
             case WlanOpcode.Rssi: pointer = Allocate(Rssi, out size); break;
             case WlanOpcode.ChannelNumber: pointer = Allocate(Channel, out size); break;
+            case WlanOpcode.RealtimeConnectionQuality: pointer = AllocateRealtimeQuality(out size); break;
             default: throw new ArgumentOutOfRangeException(nameof(opcode));
         }
-        if (NullQueryPointer) { FreeMemory(pointer); pointer = 0; }
+        if (NullQueryPointer || NullQueryOpcodes.Contains(opcode)) { FreeMemory(pointer); pointer = 0; }
         if (DeclaredQuerySizes.TryGetValue(opcode, out var declared)) size = declared;
-        return QueryErrors.GetValueOrDefault(opcode);
+        // A consulta alternativa só tem suporte nos cenários que o habilitam explicitamente.
+        return QueryErrors.GetValueOrDefault(opcode, opcode == WlanOpcode.RealtimeConnectionQuality ? 50u : 0u);
     }
     public uint GetBssList(SafeWlanHandle handle, Guid id, ref Dot11Ssid ssid,
         Dot11BssType bssType, bool securityEnabled, out nint pointer)
@@ -87,6 +93,25 @@ internal sealed class FakeWlanApi : IWlanApi
         var pointer = Marshal.AllocHGlobal((int)size);
         Interlocked.Increment(ref AllocationCount);
         Marshal.StructureToPtr(value, pointer, false);
+        return pointer;
+    }
+    private nint AllocateRealtimeQuality(out uint size)
+    {
+        var headerSize = Marshal.SizeOf<WlanRealtimeConnectionQualityHeader>();
+        var linkSize = Marshal.SizeOf<WlanRealtimeConnectionQualityLinkInfo>();
+        size = (uint)(headerSize + linkSize * RealtimeLinks.Length);
+        var pointer = Marshal.AllocHGlobal((int)size);
+        Interlocked.Increment(ref AllocationCount);
+        var header = new WlanRealtimeConnectionQualityHeader
+        {
+            PhyType = 7,
+            LinkQuality = 90,
+            IsMloConnection = RealtimeIsMlo,
+            NumberOfLinks = RealtimeDeclaredLinkCount ?? (uint)RealtimeLinks.Length
+        };
+        Marshal.StructureToPtr(header, pointer, false);
+        for (var i = 0; i < RealtimeLinks.Length; i++)
+            Marshal.StructureToPtr(RealtimeLinks[i], pointer + headerSize + i * linkSize, false);
         return pointer;
     }
     private nint AllocateList<T>(T[] values, uint declaredSize, uint count, bool bss) where T : unmanaged

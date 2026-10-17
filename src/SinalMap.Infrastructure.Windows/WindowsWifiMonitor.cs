@@ -82,7 +82,7 @@ public sealed class WindowsWifiMonitor : IWifiMonitor
             if (bssid == "00:00:00:00:00:00")
                 throw NativeWifiException.InvalidData("CurrentConnection", "The driver returned an all-zero BSSID while connected.");
 
-            int? rssi = TryRead(() => client.Query<int>(id, WlanOpcode.Rssi), issues);
+            var (rssi, rssiSource) = ReadRssi(client, id, issues);
             uint? channel = TryRead(() => client.Query<uint>(id, WlanOpcode.ChannelNumber), issues);
             if (channel == 0)
             {
@@ -120,7 +120,7 @@ public sealed class WindowsWifiMonitor : IWifiMonitor
 
             return new(id, start, clock.Capture(), WifiConnectionState.Connected, ssid,
                 Convert.ToHexString(ssidBytes), bssid, rssi, channel, frequency, hostTimestamp,
-                rssi.HasValue ? "WlanQueryInterface:rssi" : null,
+                rssiSource,
                 channel.HasValue ? "WlanQueryInterface:channel_number" : null,
                 frequency.HasValue ? "WlanGetNetworkBssList:ulChCenterFrequency (cached)" : null, issues);
         }
@@ -140,6 +140,29 @@ public sealed class WindowsWifiMonitor : IWifiMonitor
     {
         try { return read(); }
         catch (NativeWifiException ex) { issues.Add(ex.Issue); return null; }
+    }
+
+    private static (int? Value, string? Source) ReadRssi(WlanClient client, Guid id, List<ProbeIssue> issues)
+    {
+        try { return (client.Query<int>(id, WlanOpcode.Rssi), "WlanQueryInterface:rssi"); }
+        catch (NativeWifiException ex)
+        {
+            issues.Add(ex.Issue);
+            // Preservar restrições de acesso/estado e falhas de integridade sem tentar outra consulta.
+            if (ex.Issue.Kind is not (IssueKind.NativeError or IssueKind.NotSupported))
+                return (null, null);
+        }
+
+        try
+        {
+            return (client.QuerySingleLinkRealtimeRssi(id),
+                "WlanQueryInterface:realtime_connection_quality.linksInfo[0].lRssi");
+        }
+        catch (NativeWifiException ex)
+        {
+            issues.Add(ex.Issue);
+            return (null, null);
+        }
     }
 
     private static string? DecodeSsid(byte[] bytes, List<ProbeIssue> issues)
