@@ -1,5 +1,11 @@
 # SinalMap
 
+<p align="center">
+  <img src="docs/assets/sinalmap-logo.png" alt="Logo do SinalMap: marcador com sinal Wi-Fi sobre uma planta baixa" width="600">
+</p>
+
+A logo apresenta a identidade visual que servirá de referência para a futura interface.
+
 Prova de conceito open source de coleta Wi-Fi para Windows. Esta entrega implementa **somente a Fase 0**: console, Native Wi-Fi API, ICMP, JSON local e testes com adaptadores simulados.
 
 A documentação do projeto é mantida em **português brasileiro**. A versão em inglês será preparada em uma etapa futura.
@@ -18,14 +24,14 @@ Domain, Application e os testes simulados também compilam em Linux. O console r
 ## Compilar e testar
 
 ```powershell
-git clone --branch phase0/probe https://github.com/marcosmaldonadoo/SinalMap.git
+git clone https://github.com/marcosmaldonadoo/SinalMap.git
 cd SinalMap
 dotnet restore SinalMap.sln
 dotnet build SinalMap.sln -c Release --no-restore
 dotnet test SinalMap.sln -c Release --no-build --no-restore
 ```
 
-Enquanto a entrega estiver em revisão, o código está na branch `phase0/probe`. Depois da integração, também poderá ser obtido pela branch principal.
+O código da Fase 0 está integrado à branch principal, `main`.
 
 As dependências externas são usadas somente pelo projeto de testes: xUnit e Microsoft.NET.Test.Sdk. O executável usa apenas a biblioteca padrão do .NET e as APIs do Windows.
 
