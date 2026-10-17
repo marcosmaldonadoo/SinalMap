@@ -7,6 +7,32 @@ namespace SinalMap.Tests;
 public sealed class CommandLineTests
 {
     [Fact]
+    public void Comparison_accepts_two_paths_with_spaces_as_an_offline_operation()
+    {
+        var command = CommandLine.Parse(["--compare", "results/ponto A.json", "results/ponto B.json"]);
+        Assert.Equal(new ComparisonFiles("results/ponto A.json", "results/ponto B.json"), command.Compare);
+        Assert.Null(command.Target);
+        Assert.Null(command.Analyze);
+    }
+
+    public static TheoryData<string[]> InvalidComparisonArguments => new()
+    {
+        new[] { "--compare" },
+        new[] { "--compare", "a.json" },
+        new[] { "--compare", "a.json", "" },
+        new[] { "--compare", "--list", "b.json" },
+        new[] { "--compare", "a.json", "b.json", "c.json" },
+        new[] { "--compare", "a.json", "b.json", "--target", "192.0.2.1" },
+        new[] { "--compare", "a.json", "b.json", "--output", "out.json" },
+        new[] { "--analyze", "a.json", "--compare", "b.json", "c.json" }
+    };
+
+    [Theory]
+    [MemberData(nameof(InvalidComparisonArguments))]
+    public void Comparison_requires_exactly_two_paths_and_cannot_start_collection(string[] args) =>
+        Assert.Throws<ArgumentException>(() => CommandLine.Parse(args));
+
+    [Fact]
     public void Analysis_accepts_a_path_with_spaces_without_a_network_target()
     {
         var command = CommandLine.Parse(["--analyze", "results/coleta local.json"]);

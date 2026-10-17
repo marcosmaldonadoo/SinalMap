@@ -36,6 +36,8 @@ Não usar testes de desligamento/roaming em uma conexão que esteja sustentando 
 
 Para obter primeiro um resumo sem identificadores, execute `dotnet run --project src/SinalMap.Console.Probe -c Release -- --analyze results/ponto-01.json`. Os critérios estão no [guia de análise local](analise-local.md). O aceite manual exige examinar os casos deste roteiro; um resumo concluído não os aprova automaticamente.
 
+Para duas sessões distintas, use `dotnet run --project src/SinalMap.Console.Probe -c Release -- --compare results/ponto-a.json results/ponto-b.json`. O [guia de comparação](comparacao-coletas.md) explica os requisitos das diferenças. A comparação dos registros não comprova que o dispositivo mudou fisicamente de ponto.
+
 ```powershell
 $s = Get-Content -Raw results/ponto-01.json | ConvertFrom-Json
 $s.samples.Count  # 60 posições; nem todas necessariamente enviadas

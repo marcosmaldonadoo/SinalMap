@@ -38,7 +38,7 @@ internal static class SessionReportCommand
         }
     }
 
-    private static void WriteSummary(SessionSummary summary, TextWriter output)
+    internal static void WriteSummary(SessionSummary summary, TextWriter output)
     {
         var culture = CultureInfo.GetCultureInfo("pt-BR");
         output.WriteLine("Resumo local — estatísticas calculadas a partir dos registros do JSON");
