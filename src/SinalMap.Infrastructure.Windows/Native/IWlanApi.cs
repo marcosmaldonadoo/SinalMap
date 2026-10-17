@@ -1,6 +1,6 @@
 namespace SinalMap.Infrastructure.Windows.Native;
 
-/// <summary>The thin ABI boundary is replaceable so tests never load wlanapi.dll.</summary>
+/// <summary>A fronteira ABI pode ser substituída para que os testes não carreguem wlanapi.dll.</summary>
 internal interface IWlanApi
 {
     uint OpenHandle(out uint negotiatedVersion, out nint handle);

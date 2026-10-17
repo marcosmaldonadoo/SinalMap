@@ -6,7 +6,7 @@ namespace SinalMap.Infrastructure.Windows.Native;
 [SupportedOSPlatform("windows")]
 internal static class NativeMethods
 {
-    // These functions return their error codes directly. GetLastWin32Error would be incorrect.
+    // Estas funções retornam o código de erro diretamente. Usar GetLastWin32Error seria incorreto.
     [DllImport("wlanapi.dll", ExactSpelling = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     internal static extern uint WlanOpenHandle(uint clientVersion, nint reserved, out uint negotiatedVersion, out nint handle);

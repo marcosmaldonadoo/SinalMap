@@ -59,7 +59,7 @@ internal static class Program
 
             var session = await new ProbeRunner(monitor, new WindowsIcmpProbe(clock), clock)
                 .RunAsync(new ProbeOptions(command.Target!, selected.Id, selected.Description), cancellation.Token);
-            // The acquisition token may be cancelled; saving partial evidence is a separate operation.
+            // O token da aquisição pode estar cancelado; salvar os dados parciais é uma operação separada.
             await new JsonSessionStore().SaveAsync(session, output, CancellationToken.None);
             Terminal.WriteLine($"JSON: {Path.GetFullPath(output)}");
             var sent = session.Samples.Count(s => s.Icmp?.SendAttempted == true);

@@ -15,7 +15,7 @@ public sealed record ProbeSample(
 
 public enum BssidChangeKind { SameSsidBssidChangeObserved, DifferentSsidBssidChangeObserved }
 
-/// <summary>An observed change, not the exact instant or duration of a roaming event.</summary>
+/// <summary>Registra uma mudança observada, sem afirmar o instante exato ou a duração do roaming.</summary>
 public sealed record BssidChange(
     int PreviousSequence,
     int Sequence,

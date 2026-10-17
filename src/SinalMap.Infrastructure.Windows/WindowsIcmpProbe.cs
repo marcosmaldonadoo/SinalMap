@@ -17,7 +17,7 @@ internal sealed class PingTransport : IPingTransport
 {
     public async Task<PingTransportReply> SendAsync(IPAddress target, TimeSpan timeout, CancellationToken cancellationToken)
     {
-        using var ping = new Ping(); // A separate instance owns each in-flight request.
+        using var ping = new Ping(); // Cada requisição em andamento pertence a uma instância separada.
         var reply = await ping.SendPingAsync(target, timeout, new byte[32],
             new PingOptions(64, dontFragment: false), cancellationToken).ConfigureAwait(false);
         return new(reply.Status, reply.RoundtripTime, reply.Address?.ToString());
@@ -47,7 +47,7 @@ public sealed class WindowsIcmpProbe : IIcmpProbe
         RouteObservation? route = null;
         try
         {
-            // Bound preflight work as well as ICMP. A delayed route query must not send a late packet.
+            // Limitar também a verificação prévia. Uma consulta de rota atrasada não deve provocar um envio tardio.
             var routeTask = routes.InspectAsync(target, interfaceId, cancellationToken);
             _ = routeTask.ContinueWith(t => { _ = t.Exception; }, CancellationToken.None,
                 TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
@@ -59,7 +59,7 @@ public sealed class WindowsIcmpProbe : IIcmpProbe
                     new(IssueKind.ScheduleMissed, "ICMP preflight", "Route preflight missed the send deadline; no ICMP was sent."));
 
             cancellationToken.ThrowIfCancellationRequested();
-            start = clock.Capture(); // Time the SendPingAsync invocation separately from route inspection.
+            start = clock.Capture(); // Registrar a chamada a SendPingAsync separadamente da consulta de rota.
             attempted = true;
             var reply = await transport.SendAsync(target, timeout, cancellationToken).ConfigureAwait(false);
             var outcome = reply.Status switch

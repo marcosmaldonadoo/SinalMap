@@ -120,7 +120,7 @@ internal sealed class FakeWlanApi : IWlanApi
         Bssid = Dot11MacAddress.FromBytes(Convert.FromHexString(bssid)),
         BssType = Dot11BssType.Infrastructure,
         PhyType = 7,
-        Rssi = -99, // Must not replace current RSSI with a cached BSS RSSI.
+        Rssi = -99, // O RSSI do cache BSS não deve substituir o RSSI atual da conexão.
         CenterFrequencyKHz = frequency,
         HostTimestamp = 134116992000000000
     };

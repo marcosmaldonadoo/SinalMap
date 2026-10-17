@@ -28,7 +28,7 @@ public sealed class WindowsWifiMonitor : IWifiMonitor
 
     public async Task<IReadOnlyList<WifiInterfaceInfo>> ListInterfacesAsync(CancellationToken cancellationToken)
     {
-        // Native WLAN RPCs are synchronous. Keep them off the caller's thread.
+        // RPCs WLAN nativos são síncronos; executá-los fora da thread do chamador.
         var task = Task.Run<IReadOnlyList<WifiInterfaceInfo>>(() =>
         {
             using var client = new WlanClient(api);
@@ -46,8 +46,8 @@ public sealed class WindowsWifiMonitor : IWifiMonitor
             return WifiSnapshot.Unavailable(interfaceId, start, clock.Capture(),
                 new(IssueKind.Busy, "Wi-Fi", "A previous native read is still running; no stale sample was reused."));
 
-        // Each worker owns its handle and buffers until the native call actually returns.
-        // A caller timeout must never close a handle under an in-flight RPC.
+        // Cada tarefa mantém a propriedade do handle e dos buffers até a chamada nativa retornar.
+        // O timeout do chamador não deve fechar um handle cujo RPC ainda esteja em andamento.
         var task = Task.Run(() =>
         {
             try { return ReadNative(interfaceId, start, cancellationToken); }
@@ -107,7 +107,7 @@ public sealed class WindowsWifiMonitor : IWifiMonitor
             }
             catch (NativeWifiException ex) { issues.Add(ex.Issue); }
 
-            // Bracket optional queries to avoid attaching one AP's metrics to another AP's BSSID.
+            // Consultar a conexão antes e depois para evitar atribuir métricas de um AP ao BSSID de outro.
             var after = client.Query<WlanConnectionAttributes>(id, WlanOpcode.CurrentConnection);
             if (after.State != WlanInterfaceState.Connected ||
                 after.Association.Bssid.ToText() != bssid ||

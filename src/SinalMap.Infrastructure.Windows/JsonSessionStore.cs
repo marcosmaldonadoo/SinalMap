@@ -12,7 +12,7 @@ public sealed class JsonSessionStore : ISessionStore
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Converters = { new JsonStringEnumConverter() }
-        // Nulls are intentionally serialized: unavailable is different from zero.
+        // Serializar valores nulos é intencional: indisponibilidade é diferente de zero.
     };
 
     public async Task SaveAsync(ProbeSession session, string path, CancellationToken cancellationToken)
@@ -28,7 +28,7 @@ public sealed class JsonSessionStore : ISessionStore
                 await JsonSerializer.SerializeAsync(stream, session, CreateOptions(), cancellationToken).ConfigureAwait(false);
                 await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
-            // Never silently overwrite a previous measurement.
+            // Uma medição anterior nunca deve ser sobrescrita silenciosamente.
             File.Move(temporary, fullPath, overwrite: false);
         }
         finally

@@ -1,6 +1,6 @@
 namespace SinalMap.Domain;
 
-/// <summary>UTC can jump; monotonic ticks, interpreted with the session frequency, cannot.</summary>
+/// <summary>UTC pode sofrer ajustes; ticks monotônicos, interpretados com a frequência da sessão, não retrocedem.</summary>
 public sealed record ClockStamp(DateTimeOffset Utc, long MonotonicTicks);
 
 public enum IssueKind

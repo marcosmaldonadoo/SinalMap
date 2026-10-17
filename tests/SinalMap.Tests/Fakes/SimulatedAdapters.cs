@@ -4,7 +4,7 @@ using SinalMap.Domain;
 
 namespace SinalMap.Tests.Fakes;
 
-// Synthetic observations exist only in this test project. The executable has no demo data mode.
+// Observações sintéticas existem somente nos testes. O executável não possui modo de demonstração.
 internal sealed class ManualClock : IProbeClock
 {
     private long ticks;

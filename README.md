@@ -2,6 +2,8 @@
 
 Prova de conceito open source de coleta Wi-Fi para Windows. Esta entrega implementa **somente a Fase 0**: console, Native Wi-Fi API, ICMP, JSON local e testes com adaptadores simulados.
 
+A documentação do projeto é mantida em **português brasileiro**. A versão em inglês será preparada em uma etapa futura.
+
 O objetivo é validar os dados fornecidos pelo Windows e pelos drivers antes de desenvolver a interface WPF, a importação de plantas ou mapas de calor. Esses recursos ainda não fazem parte desta versão.
 
 ## Pré-requisitos
@@ -84,4 +86,4 @@ A validação automatizada usa adaptadores simulados e não comprova coleta de r
 
 Nenhuma telemetria, serviço remoto ou envio de resultados é implementado. Os únicos pacotes de teste são ICMP para o destino escolhido; a compilação/restauração pode acessar o NuGet. SSID, BSSID, GUID de interface e IP do destino permanecem no JSON local. `results/` está no `.gitignore`; revise arquivos antes de compartilhá-los.
 
-[Licença MIT](LICENSE).
+[Licença MIT em português](docs/licenca-mit-pt-br.md), com o [texto padronizado da licença](LICENSE) preservado no repositório.

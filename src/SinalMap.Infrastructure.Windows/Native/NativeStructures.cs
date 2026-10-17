@@ -91,7 +91,7 @@ internal struct WlanAssociationAttributes
 [StructLayout(LayoutKind.Sequential, Pack = 8)]
 internal struct WlanSecurityAttributes
 {
-    public int SecurityEnabled; // Win32 BOOL is 4 bytes, not C/C++ BOOLEAN.
+    public int SecurityEnabled; // BOOL do Win32 ocupa 4 bytes; o tipo BOOLEAN ocupa 1 byte.
     public int OneXEnabled;
     public uint AuthenticationAlgorithm;
     public uint CipherAlgorithm;
@@ -124,7 +124,7 @@ internal struct WlanBssEntry
     public uint PhyType;
     public int Rssi;
     public uint LinkQuality;
-    public byte InRegDomain; // Native BOOLEAN is 1 byte.
+    public byte InRegDomain; // O tipo BOOLEAN nativo ocupa 1 byte.
     public ushort BeaconPeriod;
     public ulong Timestamp;
     public ulong HostTimestamp;

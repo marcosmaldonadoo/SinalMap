@@ -12,6 +12,8 @@ Ambiente desta implementação: Ubuntu 24.04, linux-x64; SDK .NET 10.0.402 e run
 - Console `--list` em Linux: código de saída 2 e explicação da exigência do Windows, sem tentar carregar `wlanapi.dll`.
 - Destino em formato hexadecimal: código de saída 2 e rejeição antes da coleta.
 
+O CI também foi executado no GitHub para o commit `6df6dac93c9f6545104b91dfe5274825a32056f3`: compilação e testes simulados aprovados em **Linux e Windows**. No Windows, os logs confirmam **0 avisos, 0 erros e 56 testes aprovados**. A evidência está na [execução do PR](https://github.com/marcosmaldonadoo/SinalMap/actions/runs/39049062817).
+
 Comandos usados para compilação e testes neste ambiente:
 
 ```text
@@ -33,4 +35,4 @@ O armazenamento é testado quanto a serialização de valores nulos, metadados m
 
 Não foi feita coleta RF neste ambiente Linux. Não há evidência de RSSI/canal/frequência retornados por um adaptador real, permissão de localização em uma instalação real do Windows, roaming físico ou caminho efetivo de pacotes na rede do usuário.
 
-A configuração de CI inclui execução dos mesmos testes simulados em Linux e Windows. A existência dessa configuração não equivale a um resultado de execução; consulte os checks do PR para o estado efetivo. Mesmo com checks aprovados, o [roteiro manual no Windows](windows-validation.md) continua obrigatório antes de iniciar WPF.
+Consulte as verificações do PR para o estado do commit mais recente. Mesmo com o CI aprovado em Linux e Windows, o [roteiro manual no Windows](windows-validation.md) continua obrigatório antes de iniciar WPF.

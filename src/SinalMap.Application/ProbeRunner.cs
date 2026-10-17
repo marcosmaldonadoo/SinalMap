@@ -70,7 +70,7 @@ public sealed class ProbeRunner(IWifiMonitor wifi, IIcmpProbe icmp, IProbeClock 
 
     private async Task DelayUntilAsync(long start, TimeSpan offset, CancellationToken cancellationToken)
     {
-        // Recheck after early wake-ups; the wall clock never controls scheduling.
+        // Verificar novamente após despertar antes do prazo; o relógio civil não controla a agenda.
         while (offset - clock.ElapsedSince(start) is var remaining && remaining > TimeSpan.Zero)
             await clock.DelayAsync(remaining, cancellationToken).ConfigureAwait(false);
     }
@@ -78,7 +78,7 @@ public sealed class ProbeRunner(IWifiMonitor wifi, IIcmpProbe icmp, IProbeClock 
     private async Task<ProbeSample> CaptureAsync(int sequence, TimeSpan planned, DateTimeOffset plannedUtc,
         ClockStamp dispatched, double lateness, ProbeOptions options, CancellationToken cancellationToken)
     {
-        // Start ICMP first. A slow synchronous WLAN RPC must not delay the ping scheduler.
+        // Iniciar ICMP primeiro. Um RPC WLAN síncrono lento não deve atrasar a agenda dos pings.
         var pingTask = CaptureIcmpAsync(options, cancellationToken);
         var wifiTask = CaptureWifiAsync(options.InterfaceId, cancellationToken);
         await Task.WhenAll(pingTask, wifiTask).ConfigureAwait(false);

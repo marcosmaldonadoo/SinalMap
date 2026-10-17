@@ -27,7 +27,7 @@ internal sealed record CommandLine(bool Help, bool List, IPAddress? Target, Guid
         if (values.TryGetValue("--interface", out var guidText))
             interfaceId = Guid.TryParse(guidText, out var parsed) && parsed != Guid.Empty
                 ? parsed : throw new ArgumentException("--interface exige um GUID válido e não vazio.");
-        // Validate IP restrictions even when interface selection will happen later.
+        // Validar as restrições do IP mesmo quando a interface só será selecionada depois.
         new ProbeOptions(target, interfaceId ?? Guid.Parse("00000000-0000-0000-0000-000000000001")).Validate();
         var output = values.GetValueOrDefault("--output");
         if (output is not null && string.IsNullOrWhiteSpace(output))

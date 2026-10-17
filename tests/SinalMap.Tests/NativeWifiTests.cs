@@ -53,8 +53,8 @@ public sealed class NativeWifiTests
         api.QueryErrors[WlanOpcode.Rssi] = 50;
         api.QueryErrors[WlanOpcode.ChannelNumber] = 50;
         var result = await Monitor(api).ReadAsync(TestData.InterfaceId, CancellationToken.None);
-        Assert.Null(result.RssiDbm); // SignalQuality=90 must not be converted into a measured RSSI.
-        Assert.Null(result.Channel); // 2437000 kHz must not be silently converted to channel 6.
+        Assert.Null(result.RssiDbm); // SignalQuality=90 não deve ser convertido em um RSSI apresentado como medido.
+        Assert.Null(result.Channel); // 2437000 kHz não deve ser convertido silenciosamente em canal 6.
         Assert.Equal(2437000u, result.FrequencyKHz);
         Assert.Equal(2, result.Issues.Count(i => i.Kind == IssueKind.NotSupported));
         Assert.Equal(api.AllocationCount, api.FreeCount);

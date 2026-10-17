@@ -36,7 +36,7 @@ public sealed class WindowsRouteInspector(IProbeClock clock) : IRouteInspector
             var socketAddress = new SockaddrIn
             {
                 Family = 2, // AF_INET
-                Address = BitConverter.ToUInt32(target.GetAddressBytes()) // Preserve network-order bytes in memory.
+                Address = BitConverter.ToUInt32(target.GetAddressBytes()) // Preservar em memória a ordem de bytes da rede.
             };
             var code = GetBestInterfaceEx(in socketAddress, out var best);
             if (code != 0)

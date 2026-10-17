@@ -27,7 +27,7 @@ internal sealed class WlanClient : IDisposable
         using var memory = new SafeWlanMemory(pointer, api.FreeMemory);
         Check(code, memory, "WlanEnumInterfaces");
         var count = unchecked((uint)Marshal.ReadInt32(pointer));
-        // This API has no total-size output. Its count is an OS contract; cap it before arithmetic.
+        // Esta API não informa o tamanho total. Limitar a contagem do contrato nativo antes de calcular offsets.
         if (count > 4096)
             throw NativeWifiException.InvalidData("WlanEnumInterfaces", "Unreasonable interface count.");
         var size = Marshal.SizeOf<WlanInterfaceInfo>();
@@ -50,7 +50,7 @@ internal sealed class WlanClient : IDisposable
     internal WlanBssEntry? FindConnectedBss(Guid id, WlanConnectionAttributes connection)
     {
         var ssid = connection.Association.Ssid;
-        _ = ssid.ToBytes(); // Validate before passing the structure back to native code.
+        _ = ssid.ToBytes(); // Validar a estrutura antes de passá-la novamente ao código nativo.
         var code = api.GetBssList(handle, id, ref ssid, connection.Association.BssType,
             connection.Security.SecurityEnabled != 0, out var pointer);
         using var memory = new SafeWlanMemory(pointer, api.FreeMemory);
@@ -66,7 +66,7 @@ internal sealed class WlanClient : IDisposable
         for (var i = 0; i < count; i++)
         {
             var entry = Marshal.PtrToStructure<WlanBssEntry>(pointer + checked(8 + i * entrySize));
-            // Do not read untrusted variable-length information elements at all in Phase 0.
+            // A Fase 0 não interpreta elementos de informação variáveis cuja origem não é confiável.
             if (entry.Bssid.ToText() == expectedBssid &&
                 entry.BssType == connection.Association.BssType &&
                 entry.Ssid.ToBytes().AsSpan().SequenceEqual(expectedSsid) &&

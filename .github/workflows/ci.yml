@@ -1,4 +1,4 @@
-name: Phase 0 build and simulated tests
+name: Fase 0 — compilação e testes simulados
 
 on:
   push:

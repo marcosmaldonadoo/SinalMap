@@ -120,7 +120,7 @@ public sealed class ProbeRunnerTests
         {
             Assert.Null(s.Wifi!.RssiDbm);
             Assert.Null(s.Icmp!.RoundTripTimeMilliseconds);
-            Assert.Null(s.Icmp.SendAttempted); // A throwing adapter cannot tell us whether it sent.
+            Assert.Null(s.Icmp.SendAttempted); // Um adaptador que lança exceção não confirmou se tentou enviar.
             Assert.Equal(IssueKind.AdapterError, s.Icmp.Issue!.Kind);
         });
     }
