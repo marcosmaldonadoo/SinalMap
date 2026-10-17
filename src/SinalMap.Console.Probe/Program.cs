@@ -14,6 +14,9 @@ internal static class Program
         Listar interfaces:
           dotnet run --project src/SinalMap.Console.Probe -- --list
 
+        Analisar um JSON local (também funciona em Linux; resumo sem identificadores):
+          dotnet run --project src/SinalMap.Console.Probe -- --analyze <arquivo.json>
+
         Coletar 60 segundos (destino explícito; sem DNS nem destino público padrão):
           dotnet run --project src/SinalMap.Console.Probe -- --target <IPv4> [--interface <GUID>] [--output <arquivo.json>]
 
@@ -32,6 +35,8 @@ internal static class Program
         {
             var command = CommandLine.Parse(args);
             if (command.Help) { Terminal.WriteLine(Help); return 0; }
+            if (command.Analyze is { } path)
+                return await SessionReportCommand.ExecuteAsync(path, Terminal.Out, Terminal.Error, cancellation.Token);
             if (!OperatingSystem.IsWindows())
             {
                 Terminal.Error.WriteLine("A coleta nativa requer Windows. A compilação e os testes simulados podem ser executados em outros sistemas.");

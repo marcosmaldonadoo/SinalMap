@@ -6,6 +6,29 @@ namespace SinalMap.Tests;
 
 public sealed class CommandLineTests
 {
+    [Fact]
+    public void Analysis_accepts_a_path_with_spaces_without_a_network_target()
+    {
+        var command = CommandLine.Parse(["--analyze", "results/coleta local.json"]);
+        Assert.Equal("results/coleta local.json", command.Analyze);
+        Assert.Null(command.Target);
+        Assert.False(command.List);
+    }
+
+    public static TheoryData<string[]> InvalidAnalysisArguments => new()
+    {
+        new[] { "--analyze" },
+        new[] { "--analyze", "" },
+        new[] { "--analyze", "--list" },
+        new[] { "--analyze", "local.json", "--target", "192.0.2.1" },
+        new[] { "--analyze", "local.json", "--output", "other.json" }
+    };
+
+    [Theory]
+    [MemberData(nameof(InvalidAnalysisArguments))]
+    public void Analysis_is_exclusive_and_requires_a_nonempty_path(string[] args) =>
+        Assert.Throws<ArgumentException>(() => CommandLine.Parse(args));
+
     [Theory]
     [InlineData("--target", "example.com")]
     [InlineData("--target", "::1")]
