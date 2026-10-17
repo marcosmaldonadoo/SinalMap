@@ -35,4 +35,4 @@ Essas verificações são básicas. O resumo não audita toda a agenda, todos os
 
 Códigos de saída da análise: `0` arquivo lido e resumido, inclusive quando a sessão original foi cancelada ou contém falhas; `1` erro de leitura, formato incompatível ou dados inconsistentes; `2` argumentos inválidos; `130` análise cancelada pelo usuário. O código `0` não constitui aceite da coleta nem diagnóstico da rede.
 
-Para examinar locais diferentes, execute o comando separadamente para cada coleta e compare os contadores e estatísticas. Registre as condições de cada ponto; não exija uma variação predeterminada de RSSI.
+Para examinar locais diferentes, use também o comando `--compare` descrito no [guia de comparação de coletas](comparacao-coletas.md). Ele apresenta os dois resumos, verifica os contextos registrados e calcula diferenças somente quando seus requisitos são atendidos. Registre as condições de cada ponto; não exija uma variação predeterminada de RSSI.

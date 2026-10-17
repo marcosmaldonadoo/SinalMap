@@ -63,6 +63,14 @@ dotnet run --project src/SinalMap.Console.Probe -c Release -- --analyze results/
 
 O resumo local informa posições, resultados ICMP, estatísticas de RTT/RSSI, disponibilidade das métricas, fontes e ocorrências, sem exibir os identificadores da rede. Funciona também em Linux e preserva o JSON original. Consulte os [critérios, limites e códigos de saída da análise](docs/analise-local.md). O resumo auxilia a inspeção e não substitui a validação em hardware.
 
+Para comparar duas coletas salvas:
+
+```powershell
+dotnet run --project src/SinalMap.Console.Probe -c Release -- --compare results/ponto-a.json results/ponto-b.json
+```
+
+O relatório mostra os dois resumos e a compatibilidade dos contextos registrados. Diferenças **B − A** de média de RTT/RSSI são calculadas somente quando seus requisitos são atendidos, sem presumir identidades ou valores ausentes. Consulte o [guia de comparação](docs/comparacao-coletas.md), incluindo os limites para interpretar mudanças de local.
+
 ## O que é registrado
 
 | Campo | Origem / significado |

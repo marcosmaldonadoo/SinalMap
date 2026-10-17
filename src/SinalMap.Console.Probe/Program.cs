@@ -17,6 +17,9 @@ internal static class Program
         Analisar um JSON local (também funciona em Linux; resumo sem identificadores):
           dotnet run --project src/SinalMap.Console.Probe -- --analyze <arquivo.json>
 
+        Comparar duas coletas salvas (diferenças B − A, sem identificadores):
+          dotnet run --project src/SinalMap.Console.Probe -- --compare <coleta-a.json> <coleta-b.json>
+
         Coletar 60 segundos (destino explícito; sem DNS nem destino público padrão):
           dotnet run --project src/SinalMap.Console.Probe -- --target <IPv4> [--interface <GUID>] [--output <arquivo.json>]
 
@@ -37,6 +40,8 @@ internal static class Program
             if (command.Help) { Terminal.WriteLine(Help); return 0; }
             if (command.Analyze is { } path)
                 return await SessionReportCommand.ExecuteAsync(path, Terminal.Out, Terminal.Error, cancellation.Token);
+            if (command.Compare is { } comparison)
+                return await SessionComparisonCommand.ExecuteAsync(comparison, Terminal.Out, Terminal.Error, cancellation.Token);
             if (!OperatingSystem.IsWindows())
             {
                 Terminal.Error.WriteLine("A coleta nativa requer Windows. A compilação e os testes simulados podem ser executados em outros sistemas.");
