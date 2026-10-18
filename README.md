@@ -110,7 +110,9 @@ Uma [rodada manual complementar](docs/validacao-manual-complementar.md) forneceu
 
 O teste de localização negada também foi relatado: 57 posições com código 5, uma leitura com timeout e duas com monitor ocupado, sem métricas Wi-Fi registradas. A sessão foi salva e analisada, com código de saída 3. Essa indisponibilidade por permissão não determina se um campo é suportado pelo driver.
 
-Permanecem pendentes a versão do driver, os campos sem suporte aplicáveis ao ambiente, o roteamento por outra interface e o aceite final do [roteiro no Windows](docs/windows-validation.md) antes de avançar à interface gráfica. Os resultados não certificam precisão de RSSI nem compatibilidade universal de drivers.
+A rota pela Ethernet foi rejeitada nas 60 posições, com índices diferentes e `sendAttempted=false`, mantendo 60 leituras Wi-Fi. O ambiente foi identificado como Windows 11 Pro e MediaTek MT7921 com driver 3.5.0.1349. Esses resultados descrevem o perfil testado, sem certificar precisão de RSSI ou compatibilidade universal de drivers.
+
+O [parecer da Fase 0](docs/parecer-fase-0.md) consolida as evidências e propõe uma continuação limitada, sujeita ao aceite do responsável. Campos sem suporte, consulta RSSI alternativa, roaming e túneis específicos permanecem sem validação física. A [proposta de janela WPF técnica](docs/proposta-fase-1-wpf.md) contém escopo, arquivos, APIs, riscos e verificações para revisão; sua implementação ainda não começou. O [roteiro no Windows](docs/windows-validation.md) preserva as pendências.
 
 ## Privacidade e licença
 

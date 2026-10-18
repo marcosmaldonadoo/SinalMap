@@ -1,6 +1,6 @@
 # Validação manual da coleta no Windows
 
-**Estado: coleta básica, interrupções e bloqueio por permissão evidenciados em hardware real; aceite final da Fase 0 pendente.** O [registro da análise de uma sessão estável](validacao-coleta-estavel.md) documenta o JSON examinado com o adaptador MediaTek Wi-Fi 6 MT7921. A [validação manual complementar](validacao-manual-complementar.md) registra os resumos fornecidos para comparação de locais, cancelamento, desconexão, reconexão e permissão negada. Os JSONs dessa rodada complementar não foram recebidos nem examinados integralmente. Testes simulados e runners hospedados continuam distintos dessa evidência e não certificam precisão de RSSI.
+**Estado: casos principais de coleta, interrupção, permissão e rejeição de rota evidenciados em hardware real; aceite final da Fase 0 pendente.** O [registro da análise de uma sessão estável](validacao-coleta-estavel.md) documenta o JSON examinado com o adaptador MediaTek Wi-Fi 6 MT7921. A [validação manual complementar](validacao-manual-complementar.md) registra os resumos fornecidos para comparação de locais, cancelamento, desconexão, reconexão, permissão negada e rota pela Ethernet. Os JSONs dessa rodada complementar não foram recebidos nem examinados integralmente. Testes simulados e runners hospedados continuam distintos dessa evidência e não certificam precisão de RSSI.
 
 Não avançar para WPF antes de concluir este roteiro e registrar o aceite. Ausência de uma métrica por limitação do driver pode ser aceita se estiver representada como ausência com causa, sem dados estimados.
 
@@ -47,6 +47,8 @@ Capturar `$LASTEXITCODE` imediatamente após a coleta, antes de executar `--anal
 
 No teste de localização, anotar a configuração anterior e restaurá-la ao terminar. Uma sessão sem leituras Wi-Fi conectadas válidas pode ser salva com código 3. Acesso negado é diferente de desconexão ou campo sem suporte: avaliar a categoria e o código registrados. `ObservationTimeout` e `Busy` também podem aparecer se uma chamada nativa demorar; não atribuir a causa a uma janela de consentimento sem observá-la.
 
+Para a rota alternativa, manter o Wi-Fi conectado e usar `Find-NetRoute -RemoteIPAddress $destino | Select-Object InterfaceAlias, InterfaceIndex -Unique` para conferir a escolha atual do Windows. Não restringir essa consulta ao índice Wi-Fi: isso deixaria de verificar a escolha livre da rota. Uma rota diferente exige `RouteMismatch`, índices distintos e `sendAttempted=false`; falha na consulta de rota, por si só, não comprova esse cenário. O estado `Up` de `Get-NetAdapter` não substitui a seleção `Connected` da API WLAN no início da coleta. Usar `--list` para conferir o estado reconhecido pelo programa.
+
 ## Inspeção rápida do JSON em PowerShell
 
 Para obter primeiro um resumo sem identificadores, execute `dotnet run --project src/SinalMap.Console.Probe -c Release -- --analyze results/ponto-01.json`. Os critérios estão no [guia de análise local](analise-local.md). O aceite manual exige examinar os casos deste roteiro; um resumo concluído não os aprova automaticamente.
@@ -80,15 +82,15 @@ Os ticks devem ser interpretados com `$s.monotonicFrequency`. Compare SSID/BSSID
 
 - [x] Compilação Release e testes automatizados passaram.
 - [x] Coleta real de 60 s examinada, com identificação do SO e modelo do adaptador registrados.
-- [ ] Versão do driver registrada para reproduzir a compatibilidade.
+- [x] Versão do driver informada por CIM e registrada: MediaTek MT7921, 3.5.0.1349, em Windows 11 Pro.
 - [x] Comportamento do RSSI em locais diferentes examinado: constante nas duas sessões comparadas; variação em outras execuções, sem comprovação de resposta à distância ou calibração.
 - [x] Permissão de localização negada evidenciada: código 5 preservado, nenhuma métrica Wi-Fi registrada e JSON legível com saída 3.
 - [ ] Limitações de campos sem suporte pelo driver examinadas nos casos aplicáveis; o bloqueio de permissão não comprova falta de suporte.
 - [x] Cancelamento e gravação parcial evidenciados pelo resumo local e código 130.
 - [x] Desconexão e conclusão da sessão evidenciadas pelos resumos e posições relatadas.
 - [x] Retomada após reconexão evidenciada por interrupção relatada, posições sem conexão e estado final conectado.
-- [ ] Roteamento por outra interface rejeitado no cenário de teste.
+- [x] Rota pela Ethernet rejeitada nas 60 posições, índices distintos e `sendAttempted=false`, conforme resumo e inspeção local relatados.
 - [x] Cache BSS e temporização da coleta examinados no JSON.
 - [ ] Decisão registrada sobre o que o driver permite coletar na próxima fase.
 
-Os itens complementares marcados acima têm a origem e os limites descritos no [registro dos testes manuais](validacao-manual-complementar.md). Os JSONs da validação devem continuar locais até revisão dos identificadores de rede. Não preencher este checklist com resultados simulados.
+Os itens complementares marcados acima têm a origem e os limites descritos no [registro dos testes manuais](validacao-manual-complementar.md). O [parecer da Fase 0](parecer-fase-0.md) distingue casos demonstrados, cenários ainda não exercitados e a decisão de avanço de fase. O item de campos sem suporte continua sem ensaio físico específico; essa limitação precisa ser aceita explicitamente, sem declarar um teste que não ocorreu. Os JSONs da validação devem continuar locais até revisão dos identificadores de rede. Não preencher este checklist com resultados simulados.

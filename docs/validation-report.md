@@ -50,4 +50,4 @@ A [validação manual complementar](validacao-manual-complementar.md) registra e
 
 A precisão/calibração do driver, a resposta do RSSI à mudança física de local, roaming físico e caminho efetivo dos pacotes continuam dependendo dos casos de validação. As pendências atuais constam no roteiro manual. O [registro da primeira execução](primeira-coleta-windows.md) preserva o contexto do retorno 27, que não reapareceu no arquivo analisado.
 
-Consulte as verificações do PR para o estado do commit mais recente. Mesmo com o CI aprovado em Linux e Windows, o [roteiro manual no Windows](windows-validation.md) continua obrigatório antes de iniciar WPF.
+Consulte as verificações do PR para o estado do commit mais recente. O [parecer da Fase 0](parecer-fase-0.md) consolida a evidência real e simulada e mantém o aceite do responsável como requisito para o avanço de fase. O [roteiro manual no Windows](windows-validation.md) preserva os casos não exercitados; o CI aprovado não os transforma em testes físicos realizados.

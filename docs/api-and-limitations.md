@@ -39,6 +39,8 @@ Erros de permissão, estado da conexão ou integridade do retorno principal não
 
 O texto de erro do código 27 é uma descrição Win32 genérica. Quando recebido pela consulta WLAN de RSSI, esse texto isolado não comprova uma falha de armazenamento e não determina a causa no driver. Não se muda seu código para “não suportado” sem evidência.
 
+O [perfil real documentado](validacao-manual-complementar.md) usa MediaTek MT7921 com driver 3.5.0.1349 em Windows 11 Pro. A consulta principal funcionou nas sessões conectadas; a alternativa não foi utilizada. Não extrapolar esse resultado para outros drivers, MLO, calibração do sinal ou atualização do RSSI a cada recepção. Os campos principais estavam disponíveis nesse perfil; os testes de campos não suportados continuam usando respostas simuladas.
+
 ## Temporização e paralelismo
 
 As posições planejadas são 0 a 59, com intervalo de 1 s. A janela termina em 60 s; ela pode ser excedida pelo tempo necessário para completar operações já iniciadas ou para gravar o arquivo. O agendamento usa somente ticks monotônicos. `plannedAtUtc` é uma projeção do UTC inicial; UTC observado pode diferir após sincronização do relógio.
@@ -57,7 +59,7 @@ A pré-verificação de rota tem espera máxima de 200 ms. Uma pré-verificaçã
 - O GUID WLAN é associado ao índice IPv4 do mesmo adaptador. `GetBestInterfaceEx` deve indicar esse índice antes de cada envio. Rotas por VPN/Ethernet resultam em `RouteRejected`, sem envio.
 - A checagem não vincula `Ping.SendPingAsync` a um endereço de origem, e há uma corrida entre consulta da rota e envio. Uma captura de tráfego seria necessária para comprovar o caminho de cada pacote. Túneis/filtros de terceiros também podem alterar o caminho efetivo.
 - Mais de um adaptador Wi-Fi conectado exige `--interface`. A seleção permanece fixa durante a sessão; não se migra silenciosamente para outro adaptador.
-- A sessão acompanha a conexão atual desse adaptador. Se o usuário trocar de SSID, os snapshots mostram os bytes dos SSIDs diferentes; uma mudança de BSSID com SSID diferente recebe uma classificação distinta. Não há média global que misture as redes.
+- A sessão acompanha a conexão atual desse adaptador. Se o usuário trocar de SSID, os snapshots mostram os bytes dos SSIDs diferentes; uma mudança de BSSID com SSID diferente recebe uma classificação distinta. O analisador calcula estatísticas descritivas globais da sessão e não as segmenta por SSID/BSSID. Se houver troca de rede/AP, não interpretar essas médias como uma medição de uma única conexão estável. O comparador verifica os contextos e omite diferenças que não atendam aos seus requisitos.
 - O alvo de validação inicial é Windows 11 x64. Outras arquiteturas/versões do Windows e drivers precisam de validação própria; o uso de `net10.0` não implica suporte à coleta em Linux.
 - Não há SNR, ruído, ocupação real de canal/airtime, interferência, retransmissões 802.11, largura de canal validada, MCS/NSS, MLO por enlace, throughput, recomendação de canal, estimativa de distância ou certificação regulatória brasileira.
 - O foco inicial no Brasil não altera a leitura das APIs. Não há tabela ANATEL embutida nem classificação de canais como permitidos. Essa análise exigiria uma etapa separada, documentada e atualizada.
