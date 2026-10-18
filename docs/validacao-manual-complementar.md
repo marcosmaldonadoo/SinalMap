@@ -90,10 +90,35 @@ O estado final conectado após a interrupção relatada e a presença de posiç�
 
 Nas duas sessões de interrupção, `NativeError` sem código numérico apareceu para os resultados ICMP sem sucesso. No código atual, um `TimedOut` também gera essa categoria. Esses registros não determinam sozinhos a causa física de uma falha.
 
+## Permissão de localização negada
+
+Na execução do caso de bloqueio de localização, o responsável forneceu a saída do coletor e do analisador local:
+
+| Verificação | Resultado relatado |
+|---|---|
+| Duração monotônica | 60,0154 s |
+| Posições despachadas | 60 de 60; sem atraso descartado ou cancelamento |
+| Chamadas ICMP confirmadas | 60 |
+| Resultados ICMP | 58 `Success`, 2 `TimedOut` |
+| RTT em sucesso: mínimo / média / máximo | 3,00 / 4,33 / 21,00 ms |
+| Leituras Wi-Fi conectadas válidas | 0 de 60 |
+| RSSI, canal e frequência em cache | Nenhum valor registrado |
+| Acesso negado | 57 posições com `PermissionDenied`, código 5, em `WlanQueryInterface:CurrentConnection` |
+| Leitura fora do orçamento | 1 posição com `ObservationTimeout`; limite de 750 ms |
+| Leitura anterior ainda pendente | 2 posições com `Busy` |
+| Código da coleta | 3 |
+| Persistência | JSON salvo e lido pelo analisador local |
+
+O bloqueio foi representado como indisponibilidade de observação, com o código nativo preservado. A ausência de leituras Wi-Fi válidas não equivale a concluir que o rádio estava desconectado: o coletor não conseguiu consultar a conexão, enquanto o ICMP teve respostas em 58 tentativas. A causa dos dois timeouts ICMP não foi determinada.
+
+No código atual, `ObservationTimeout` significa que a espera do consumidor excedeu 750 ms; a chamada nativa pode continuar em andamento. `Busy` indica que uma leitura anterior ainda ocupava o monitor, impedindo outra consulta nativa simultânea. Os resultados tardios não são reaproveitados como uma amostra nova. O resumo não permite atribuir a demora a uma janela de consentimento, ao driver ou a outra causa específica.
+
+O código 3 é o retorno previsto para uma sessão salva sem nenhuma leitura Wi-Fi conectada válida. O teste evidencia o tratamento da permissão negada e a persistência do resultado nesse ambiente. Não demonstra suporte ausente do driver para RSSI/canal/frequência, pois o bloqueio ocorreu antes dessas consultas. A retomada após restaurar o consentimento não foi examinada nesta sessão. A configuração anterior deve ser restaurada antes dos próximos testes.
+
 ## Aceite parcial e limites
 
-Evidenciados neste ambiente: comparação de duas sessões reais, persistência e leitura de sessão cancelada, detecção de desconexão e retomada após reconexão. O comportamento do RSSI foi examinado em locais diferentes e houve variação em outras execuções; a resposta à distância e a precisão/calibração continuam inconclusivas.
+Evidenciados neste ambiente: comparação de duas sessões reais, persistência e leitura de sessão cancelada, detecção de desconexão, retomada após reconexão e bloqueio por permissão com salvamento de uma sessão sem métricas Wi-Fi. O comportamento do RSSI foi examinado em locais diferentes e houve variação em outras execuções; a resposta à distância e a precisão/calibração continuam inconclusivas.
 
-Permanecem pendentes a versão do driver, as permissões de localização, os campos sem suporte aplicáveis ao ambiente, a rejeição de uma rota por outra interface e a decisão final de aceite da Fase 0. Roaming e mudança de SSID dependem de um cenário físico apropriado; nenhuma mudança de BSSID foi observada nestes testes. A alternativa RSSI não foi utilizada e seu suporte nesse adaptador continua sem comprovação.
+Permanecem pendentes a versão do driver, os campos sem suporte aplicáveis ao ambiente, a rejeição de uma rota por outra interface e a decisão final de aceite da Fase 0. Roaming e mudança de SSID dependem de um cenário físico apropriado; nenhuma mudança de BSSID foi observada nas sessões com leituras válidas de conexão. A alternativa RSSI não foi utilizada e seu suporte nesse adaptador continua sem comprovação.
 
 Os JSONs brutos desta rodada permanecem locais. Esta análise dos resumos não substitui uma inspeção integral desses arquivos nem certifica o caminho físico dos pacotes. Consulte o [roteiro de validação](windows-validation.md); nenhuma interface WPF foi iniciada.

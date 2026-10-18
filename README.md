@@ -108,7 +108,9 @@ A validação automatizada usa adaptadores simulados. Uma [coleta básica real d
 
 Uma [rodada manual complementar](docs/validacao-manual-complementar.md) forneceu resumos de comparação entre locais, cancelamento com salvamento parcial, desconexão e reconexão. O cancelamento terminou com código 130, e a sessão de reconexão terminou conectada após a interrupção relatada. Os JSONs dessa rodada permaneceram locais e não foram examinados integralmente nesta análise. O RSSI foi constante nas duas sessões comparadas e variou em outras execuções; sua resposta à distância e precisão continuam inconclusivas.
 
-Permanecem pendentes a versão do driver, os casos de permissões/campos sem suporte, o roteamento por outra interface e o aceite final do [roteiro no Windows](docs/windows-validation.md) antes de avançar à interface gráfica. Os resultados não certificam precisão de RSSI nem compatibilidade universal de drivers.
+O teste de localização negada também foi relatado: 57 posições com código 5, uma leitura com timeout e duas com monitor ocupado, sem métricas Wi-Fi registradas. A sessão foi salva e analisada, com código de saída 3. Essa indisponibilidade por permissão não determina se um campo é suportado pelo driver.
+
+Permanecem pendentes a versão do driver, os campos sem suporte aplicáveis ao ambiente, o roteamento por outra interface e o aceite final do [roteiro no Windows](docs/windows-validation.md) antes de avançar à interface gráfica. Os resultados não certificam precisão de RSSI nem compatibilidade universal de drivers.
 
 ## Privacidade e licença
 
