@@ -28,4 +28,4 @@ O console também passou a contar separadamente as posições com RSSI, canal e 
 
 A repetição foi realizada e seu JSON foi examinado: consulte a [validação da coleta estável](validacao-coleta-estavel.md). O arquivo confirma RSSI, canal e frequência disponíveis nas 60 amostras, com as fontes identificadas e sem erros. O erro 27 não reapareceu nessa execução; sua causa permanece indeterminada.
 
-Registrar a versão do driver quando conhecida. Os demais casos do [roteiro de validação](windows-validation.md), incluindo locais diferentes, cancelamento, desconexão e roteamento, continuam pendentes.
+Registrar a versão do driver quando conhecida. Uma [rodada manual complementar](validacao-manual-complementar.md) acrescentou resumos de locais diferentes, cancelamento, desconexão e reconexão. As pendências atuais, incluindo permissões e roteamento por outra interface, permanecem no [roteiro de validação](windows-validation.md).

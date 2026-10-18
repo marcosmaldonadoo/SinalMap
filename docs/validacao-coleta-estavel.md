@@ -46,4 +46,4 @@ A checagem de rota correspondeu ao adaptador selecionado antes dos pings. Não f
 
 **Aprovada a coleta básica em uma sessão de 60 segundos nesse adaptador:** valores presentes, fontes explícitas, persistência legível, identidade estável, ICMP e temporização coerentes.
 
-Continuam pendentes os testes em locais diferentes, cancelamento e salvamento parcial, desconexão, bloqueio de permissões e roteamento por outra interface previstos no [roteiro de validação](windows-validation.md). A implementação permanece na Fase 0; nenhuma interface WPF foi iniciada.
+Uma [rodada posterior de validação manual](validacao-manual-complementar.md) acrescentou resumos de comparação entre locais, cancelamento e salvamento parcial, desconexão e reconexão. Seus JSONs brutos não foram recebidos nesta análise; a evidência tem limites distintos do arquivo integral examinado neste documento. Permissões, roteamento por outra interface e demais pendências continuam no [roteiro de validação](windows-validation.md). A implementação permanece na Fase 0; nenhuma interface WPF foi iniciada.
