@@ -6,9 +6,9 @@ A publicação de resultados agregados foi autorizada com remoção dos dados se
 
 ## Ambiente relatado
 
-- Windows, com adaptador MediaTek Wi-Fi 6 MT7921 Wireless LAN Card.
+- Windows 11 Pro, com adaptador MediaTek Wi-Fi 6 MT7921 Wireless LAN Card.
 - Aplicativo de console da Fase 0 em .NET 10, executado pelo binário compilado em Release.
-- Versão do driver ainda não informada. A versão/build do Windows não foi fornecida para esta rodada.
+- Driver **3.5.0.1349**, informado pela consulta local a `Win32_PnPSignedDriver`. A versão/build do Windows também foi identificada por CIM; os detalhes do SO permanecem omitidos neste resumo público, como no registro anterior.
 - Nenhuma coleta RF foi executada no ambiente Linux de desenvolvimento.
 
 ## Coletas em dois locais
@@ -115,10 +115,37 @@ No código atual, `ObservationTimeout` significa que a espera do consumidor exce
 
 O código 3 é o retorno previsto para uma sessão salva sem nenhuma leitura Wi-Fi conectada válida. O teste evidencia o tratamento da permissão negada e a persistência do resultado nesse ambiente. Não demonstra suporte ausente do driver para RSSI/canal/frequência, pois o bloqueio ocorreu antes dessas consultas. A retomada após restaurar o consentimento não foi examinada nesta sessão. A configuração anterior deve ser restaurada antes dos próximos testes.
 
-## Aceite parcial e limites
+## Rejeição de rota pela Ethernet
 
-Evidenciados neste ambiente: comparação de duas sessões reais, persistência e leitura de sessão cancelada, detecção de desconexão, retomada após reconexão e bloqueio por permissão com salvamento de uma sessão sem métricas Wi-Fi. O comportamento do RSSI foi examinado em locais diferentes e houve variação em outras execuções; a resposta à distância e a precisão/calibração continuam inconclusivas.
+O responsável manteve Wi-Fi e Ethernet ativos. A consulta local `Find-NetRoute` indicou a Ethernet para o destino de teste. Uma tentativa inicial foi recusada antes da coleta porque o GUID informado não correspondia a uma interface Wi-Fi conectada naquele momento; essa tentativa não produziu uma medição. A causa dessa condição inicial não foi determinada.
 
-Permanecem pendentes a versão do driver, os campos sem suporte aplicáveis ao ambiente, a rejeição de uma rota por outra interface e a decisão final de aceite da Fase 0. Roaming e mudança de SSID dependem de um cenário físico apropriado; nenhuma mudança de BSSID foi observada nas sessões com leituras válidas de conexão. A alternativa RSSI não foi utilizada e seu suporte nesse adaptador continua sem comprovação.
+Na execução seguinte, a coleta terminou com:
 
-Os JSONs brutos desta rodada permanecem locais. Esta análise dos resumos não substitui uma inspeção integral desses arquivos nem certifica o caminho físico dos pacotes. Consulte o [roteiro de validação](windows-validation.md); nenhuma interface WPF foi iniciada.
+| Verificação | Resultado relatado |
+|---|---|
+| Duração monotônica | 60,0073 s |
+| Posições despachadas | 60 de 60; sem atraso descartado ou cancelamento |
+| Resultado ICMP | 60 `RouteRejected` |
+| Motivo da rejeição | 60 ocorrências `RouteMismatch`, operação `GetBestInterfaceEx` |
+| Chamadas ICMP confirmadas / tentativa desconhecida | 0 / 0 |
+| RTT | Nenhum valor registrado |
+| Índices de interface, inspecionados localmente | Interface Wi-Fi selecionada e interface de rota distintas em todas as posições; valores locais omitidos |
+| Tentativa de envio, inspecionada localmente | `sendAttempted=false` em todas as posições |
+| Wi-Fi conectado | 60 de 60 posições |
+| RSSI | −55 dBm nas 60 posições, pela consulta principal |
+| Canal e frequência em cache BSS | Disponíveis nas 60 posições |
+| Mudanças de BSSID observadas | 0 |
+| Código da coleta | 0 |
+| Persistência | JSON salvo e lido pelo analisador local |
+
+A projeção local dos índices e de `sendAttempted`, após remover duplicatas, produziu uma única combinação: índices diferentes e envio não tentado. O resultado evidencia a rejeição anterior à chamada do transporte ICMP, mantendo as consultas Wi-Fi. O código 0 é compatível com uma sessão concluída contendo leituras Wi-Fi válidas mesmo com todos os envios rejeitados.
+
+O teste usou Ethernet. A VPN estava disponível como alternativa, mas não foi exercitada; não declarar compatibilidade física com túneis específicos. Também não foi feita captura de pacotes: esta evidência comprova os registros de rota e de chamada ao transporte, não um rastreamento físico dos pacotes. Esta sessão voltou a obter métricas Wi-Fi após o teste de permissão negada; mudanças de consentimento dentro do mesmo processo continuam sem ensaio específico.
+
+## Parecer parcial e limites
+
+Evidenciados neste ambiente: comparação de duas sessões reais, persistência e leitura de sessão cancelada, detecção de desconexão, retomada após reconexão, bloqueio por permissão com salvamento de uma sessão sem métricas Wi-Fi e rejeição da rota pela Ethernet sem chamar o transporte ICMP. O comportamento do RSSI foi examinado em locais diferentes e houve variação em outras execuções; a resposta à distância e a precisão/calibração continuam inconclusivas.
+
+Os campos sem suporte pelo driver não foram exercitados em hardware nesta rodada: os campos principais retornaram valores nas sessões com leitura de conexão. A alternativa RSSI não foi utilizada e seu suporte nesse adaptador continua sem comprovação. Roaming e mudança de SSID dependem de um cenário físico apropriado; nenhuma mudança de BSSID foi observada nas sessões com leituras válidas de conexão.
+
+Os JSONs brutos desta rodada permanecem locais. Esta análise dos resumos não substitui uma inspeção integral desses arquivos nem certifica o caminho físico dos pacotes. O [parecer da Fase 0](parecer-fase-0.md) consolida o alcance da prova e as pendências para o aceite. Consulte o [roteiro de validação](windows-validation.md); nenhuma interface WPF foi iniciada.

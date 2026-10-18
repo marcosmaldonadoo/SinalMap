@@ -21,6 +21,8 @@ Para um caminho com espaços, use aspas. A análise é uma operação separada d
 
 Quando não há valores de uma métrica, a saída informa essa ausência. As estatísticas são cálculos descritivos dos registros, sem classificação automática de saúde da rede, estimativa de cobertura ou certificação da precisão do driver.
 
+As estatísticas são globais da sessão, sem agrupamento por SSID ou BSSID. Se a conexão mudar durante a coleta, os valores podem abranger redes ou APs diferentes; o resumo isolado não representa uma única conexão estável. Examine os snapshots e eventos locais, além dos contextos apresentados por `--compare`, antes de interpretar médias como resultado de um ponto de teste.
+
 ## Privacidade
 
 O resumo omite SSID, BSSID, IPs, GUIDs, identificador da sessão, nome do adaptador, sistema operacional, horários absolutos, caminho do arquivo e textos livres das ocorrências. Nomes técnicos dos tipos de ocorrência e códigos numéricos são mantidos. Fontes não reconhecidas são contadas sem imprimir seu conteúdo.
