@@ -46,6 +46,8 @@ A comparação acrescenta testes das diferenças B − A, da unidade dB para dif
 
 Não foi feita coleta RF neste ambiente Linux. O usuário forneceu um JSON de uma execução real no Windows, e sua análise confirmou a coleta básica com 60 respostas ICMP, RSSI de −67 dBm, canal e frequência em todas as amostras, sem erros registrados. A fonte RSSI foi a consulta principal, e a alternativa não foi utilizada: consulte a [validação da coleta estável](validacao-coleta-estavel.md).
 
-A precisão/calibração do driver, a resposta do RSSI à mudança física de local, permissões, cancelamento, roaming físico e caminho efetivo dos pacotes continuam dependendo dos casos de validação. O [registro da primeira execução](primeira-coleta-windows.md) preserva o contexto do retorno 27, que não reapareceu no arquivo analisado.
+A [validação manual complementar](validacao-manual-complementar.md) registra evidência fornecida posteriormente pelo responsável para locais diferentes, cancelamento, desconexão e reconexão no Windows. Essa rodada foi examinada pelos resumos e inspeções locais relatados, sem recebimento dos JSONs brutos; não foi executada no ambiente Linux nem substituída pelos testes simulados.
+
+A precisão/calibração do driver, a resposta do RSSI à mudança física de local, permissões, roaming físico e caminho efetivo dos pacotes continuam dependendo dos casos de validação. O [registro da primeira execução](primeira-coleta-windows.md) preserva o contexto do retorno 27, que não reapareceu no arquivo analisado.
 
 Consulte as verificações do PR para o estado do commit mais recente. Mesmo com o CI aprovado em Linux e Windows, o [roteiro manual no Windows](windows-validation.md) continua obrigatório antes de iniciar WPF.
