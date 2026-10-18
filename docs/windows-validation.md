@@ -1,6 +1,6 @@
 # Validação manual da coleta no Windows
 
-**Estado: coleta básica e testes de interrupção evidenciados em hardware real; aceite final da Fase 0 pendente.** O [registro da análise de uma sessão estável](validacao-coleta-estavel.md) documenta o JSON examinado com o adaptador MediaTek Wi-Fi 6 MT7921. A [validação manual complementar](validacao-manual-complementar.md) registra os resumos fornecidos para comparação de locais, cancelamento, desconexão e reconexão. Os JSONs dessa rodada complementar não foram recebidos nem examinados integralmente. Testes simulados e runners hospedados continuam distintos dessa evidência e não certificam precisão de RSSI.
+**Estado: coleta básica, interrupções e bloqueio por permissão evidenciados em hardware real; aceite final da Fase 0 pendente.** O [registro da análise de uma sessão estável](validacao-coleta-estavel.md) documenta o JSON examinado com o adaptador MediaTek Wi-Fi 6 MT7921. A [validação manual complementar](validacao-manual-complementar.md) registra os resumos fornecidos para comparação de locais, cancelamento, desconexão, reconexão e permissão negada. Os JSONs dessa rodada complementar não foram recebidos nem examinados integralmente. Testes simulados e runners hospedados continuam distintos dessa evidência e não certificam precisão de RSSI.
 
 Não avançar para WPF antes de concluir este roteiro e registrar o aceite. Ausência de uma métrica por limitação do driver pode ser aceita se estiver representada como ausência com causa, sem dados estimados.
 
@@ -45,6 +45,8 @@ Não usar testes de desligamento/roaming em uma conexão que esteja sustentando 
 
 Capturar `$LASTEXITCODE` imediatamente após a coleta, antes de executar `--analyze`: a análise tem seu próprio código de saída. As 60 posições incluem posições canceladas ou descartadas; posições não enviadas não são perdas ICMP. Uma coleta concluída com código 0 pode conter falhas de conectividade.
 
+No teste de localização, anotar a configuração anterior e restaurá-la ao terminar. Uma sessão sem leituras Wi-Fi conectadas válidas pode ser salva com código 3. Acesso negado é diferente de desconexão ou campo sem suporte: avaliar a categoria e o código registrados. `ObservationTimeout` e `Busy` também podem aparecer se uma chamada nativa demorar; não atribuir a causa a uma janela de consentimento sem observá-la.
+
 ## Inspeção rápida do JSON em PowerShell
 
 Para obter primeiro um resumo sem identificadores, execute `dotnet run --project src/SinalMap.Console.Probe -c Release -- --analyze results/ponto-01.json`. Os critérios estão no [guia de análise local](analise-local.md). O aceite manual exige examinar os casos deste roteiro; um resumo concluído não os aprova automaticamente.
@@ -80,7 +82,8 @@ Os ticks devem ser interpretados com `$s.monotonicFrequency`. Compare SSID/BSSID
 - [x] Coleta real de 60 s examinada, com identificação do SO e modelo do adaptador registrados.
 - [ ] Versão do driver registrada para reproduzir a compatibilidade.
 - [x] Comportamento do RSSI em locais diferentes examinado: constante nas duas sessões comparadas; variação em outras execuções, sem comprovação de resposta à distância ou calibração.
-- [ ] Permissões e campos indisponíveis representados corretamente.
+- [x] Permissão de localização negada evidenciada: código 5 preservado, nenhuma métrica Wi-Fi registrada e JSON legível com saída 3.
+- [ ] Limitações de campos sem suporte pelo driver examinadas nos casos aplicáveis; o bloqueio de permissão não comprova falta de suporte.
 - [x] Cancelamento e gravação parcial evidenciados pelo resumo local e código 130.
 - [x] Desconexão e conclusão da sessão evidenciadas pelos resumos e posições relatadas.
 - [x] Retomada após reconexão evidenciada por interrupção relatada, posições sem conexão e estado final conectado.
