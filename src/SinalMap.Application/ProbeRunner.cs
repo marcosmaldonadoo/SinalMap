@@ -1,11 +1,13 @@
 using System.Runtime.InteropServices;
+using System.Threading.Channels;
 using SinalMap.Domain;
 
 namespace SinalMap.Application;
 
 public sealed class ProbeRunner(IWifiMonitor wifi, IIcmpProbe icmp, IProbeClock clock)
 {
-    public async Task<ProbeSession> RunAsync(ProbeOptions options, CancellationToken cancellationToken)
+    public async Task<ProbeSession> RunAsync(ProbeOptions options, CancellationToken cancellationToken,
+        ChannelWriter<ProbeSample>? liveSamples = null)
     {
         options.Validate();
         var start = clock.Capture();
@@ -30,6 +32,7 @@ public sealed class ProbeRunner(IWifiMonitor wifi, IIcmpProbe icmp, IProbeClock 
                 tasks[sequence] = Task.FromResult(new ProbeSample(sequence, planned, start.Utc + planned,
                     null, null, SlotDisposition.CancelledBeforeDispatch, null, null,
                     [new(IssueKind.Cancelled, "Schedule", "Cancelled before this planned slot.")]));
+                liveSamples?.TryWrite(await tasks[sequence].ConfigureAwait(false));
                 continue;
             }
 
@@ -41,11 +44,12 @@ public sealed class ProbeRunner(IWifiMonitor wifi, IIcmpProbe icmp, IProbeClock 
                 tasks[sequence] = Task.FromResult(new ProbeSample(sequence, planned, start.Utc + planned,
                     null, lateness.TotalMilliseconds, SlotDisposition.SkippedLate, null, null,
                     [new(IssueKind.ScheduleMissed, "Schedule", "Slot missed; no catch-up packet was sent.")]));
+                liveSamples?.TryWrite(await tasks[sequence].ConfigureAwait(false));
                 continue;
             }
 
             tasks[sequence] = CaptureAsync(sequence, planned, start.Utc + planned, dispatched,
-                lateness.TotalMilliseconds, options, cancellationToken);
+                lateness.TotalMilliseconds, options, cancellationToken, liveSamples);
         }
 
         if (!cancelled)
@@ -76,14 +80,18 @@ public sealed class ProbeRunner(IWifiMonitor wifi, IIcmpProbe icmp, IProbeClock 
     }
 
     private async Task<ProbeSample> CaptureAsync(int sequence, TimeSpan planned, DateTimeOffset plannedUtc,
-        ClockStamp dispatched, double lateness, ProbeOptions options, CancellationToken cancellationToken)
+        ClockStamp dispatched, double lateness, ProbeOptions options, CancellationToken cancellationToken,
+        ChannelWriter<ProbeSample>? liveSamples)
     {
         // Iniciar ICMP primeiro. Um RPC WLAN síncrono lento não deve atrasar a agenda dos pings.
         var pingTask = CaptureIcmpAsync(options, cancellationToken);
         var wifiTask = CaptureWifiAsync(options.InterfaceId, cancellationToken);
         await Task.WhenAll(pingTask, wifiTask).ConfigureAwait(false);
-        return new(sequence, planned, plannedUtc, dispatched, lateness, SlotDisposition.Dispatched,
+        var sample = new ProbeSample(sequence, planned, plannedUtc, dispatched, lateness, SlotDisposition.Dispatched,
             await wifiTask.ConfigureAwait(false), await pingTask.ConfigureAwait(false), []);
+        // TryWrite não espera a interface gráfica; o canal usado pela janela não executa continuações síncronas.
+        liveSamples?.TryWrite(sample);
+        return sample;
     }
 
     private async Task<IcmpMeasurement> CaptureIcmpAsync(ProbeOptions options, CancellationToken cancellationToken)

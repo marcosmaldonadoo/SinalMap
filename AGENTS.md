@@ -6,9 +6,11 @@ Escreva toda documentação em português brasileiro, incluindo README, guias, i
 
 ## Escopo atual
 
-A entrega atual é exclusivamente a Fase 0: prova de coleta da rede Wi-Fi conectada em console. Não implementar WPF, plantas ou mapas de calor antes da validação manual documentada em `docs/windows-validation.md`.
+Em 2026-10-20, após revisar a proposta e executar nova coleta física, o responsável autorizou o avanço para a janela WPF técnica de `docs/proposta-fase-1-wpf.md`, aceitando os limites do parecer da Fase 0. O escopo atual inclui o console existente e essa janela: seleção de interface/destino, coleta, cancelamento com salvamento parcial e análise local de JSON. Plantas, pontos de survey e mapas de calor continuam fora do escopo. Casos físicos ainda não exercitados permanecem pendentes; o aceite não os transforma em testes aprovados.
 
 ## Integridade das observações
+
+A extensão de 2026-10-20 solicitada pelo responsável inclui o valor de RSSI em dBm e seu gráfico ao vivo na janela. A publicação de amostras não deve bloquear a agenda; ausência e mudança de contexto precisam interromper a linha. Continuam vigentes a sessão de 60 segundos e as consultas/fontes já existentes.
 
 Não inventar medições, canais ou frequências. Valores não retornados ou não suportados devem permanecer nulos com o motivo registrado. Não converter qualidade percentual em RSSI medido. Identificar dados de cache e preservar os códigos de erro das APIs nativas. Testes simulados não comprovam recepção Wi-Fi em hardware real.
 

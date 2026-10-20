@@ -1,0 +1,157 @@
+<Window x:Class="SinalMap.Desktop.Wpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:SinalMap.Desktop.Wpf.Controls"
+        Title="SinalMap — coleta Wi-Fi" Width="1220" Height="870" MinWidth="980" MinHeight="730"
+        Background="#F3F7F8" Foreground="#203744" FontFamily="Segoe UI" FontSize="13"
+        WindowStartupLocation="CenterScreen" Loaded="OnLoaded" Closing="OnClosing">
+    <Window.Resources>
+        <Style x:Key="InterfaceState" TargetType="TextBlock">
+            <Setter Property="Text" Value="Indeterminado" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding State}" Value="Connected"><Setter Property="Text" Value="Conectado" /></DataTrigger>
+                <DataTrigger Binding="{Binding State}" Value="Disconnected"><Setter Property="Text" Value="Desconectado" /></DataTrigger>
+                <DataTrigger Binding="{Binding State}" Value="Unavailable"><Setter Property="Text" Value="Indisponível" /></DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    <Window.InputBindings>
+        <KeyBinding Key="O" Modifiers="Control" Command="{Binding OpenCommand}" />
+        <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
+    </Window.InputBindings>
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="76" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <DockPanel Grid.Row="0" LastChildFill="True">
+            <Image Source="Assets/sinalmap-logo.png" Width="180" Height="64" Stretch="Uniform" DockPanel.Dock="Left" Margin="0,0,24,8" />
+            <Button Content="Abrir JSON…" Command="{Binding OpenCommand}" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0" />
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Coleta Wi-Fi" FontSize="25" FontWeight="SemiBold" />
+                <TextBlock Text="Piloto técnico · 60 segundos · registros locais" Foreground="#58737D" Margin="0,4,0,0" />
+            </StackPanel>
+        </DockPanel>
+        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="14,10" Margin="0,8,0,18" AutomationProperties.Name="Estado da operação">
+            <StackPanel>
+                <TextBlock Text="{Binding Status}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Error}" TextWrapping="Wrap" Foreground="#AA3030" Margin="0,4,0,0" />
+                <ProgressBar IsIndeterminate="True" Height="3" Margin="0,8,0,0"
+                             Visibility="{Binding IsBusy, Converter={StaticResource BoolVisibility}}" />
+            </StackPanel>
+        </Border>
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="300" /><ColumnDefinition Width="18" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource Card}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Preparar coleta" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,14" />
+                        <TextBlock Text="1. Interface Wi-Fi" Margin="0,0,0,6" />
+                        <ComboBox ItemsSource="{Binding Interfaces}" SelectedItem="{Binding SelectedInterface}"
+                                  IsEnabled="{Binding CanReplaceSession}" AutomationProperties.Name="Interface Wi-Fi" Margin="0,0,0,8">
+                            <ComboBox.ItemTemplate><DataTemplate><StackPanel Margin="2,3">
+                                <TextBlock Text="{Binding Description}" TextWrapping="Wrap" MaxWidth="220" />
+                                <TextBlock Style="{StaticResource InterfaceState}" FontSize="11" Foreground="#58737D" />
+                            </StackPanel></DataTemplate></ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <Button Content="Atualizar interfaces" Command="{Binding RefreshCommand}" />
+                        <TextBlock Text="2. Destino IPv4" Margin="0,12,0,6" />
+                        <TextBox Text="{Binding TargetText, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanReplaceSession}"
+                                 AutomationProperties.Name="Destino IPv4" />
+                        <TextBlock Text="Informe o gateway ou outro destino autorizado. O programa não escolhe um IP nem usa DNS." TextWrapping="Wrap" Foreground="#58737D" FontSize="12" Margin="0,6,0,14" />
+                        <TextBlock Text="3. Pasta dos resultados" Margin="0,0,0,6" />
+                        <TextBox Text="{Binding OutputFolder, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEditFolder}"
+                                 AutomationProperties.Name="Pasta dos resultados" TextWrapping="Wrap" MinHeight="56" />
+                        <Button Content="Escolher pasta…" Command="{Binding ChooseFolderCommand}" Margin="0,8,0,18" />
+                        <Button Content="Iniciar coleta · 60 s" Command="{Binding StartCommand}" Style="{StaticResource PrimaryButton}" />
+                        <Button Content="Cancelar e salvar parcial" Command="{Binding CancelCommand}" />
+                        <Border Background="#FFF4DE" Padding="10" CornerRadius="6" Margin="0,8,0,8"
+                                Visibility="{Binding HasPendingSave, Converter={StaticResource BoolVisibility}}">
+                            <StackPanel>
+                                <TextBlock Text="Sessão ainda não salva" FontWeight="SemiBold" />
+                                <TextBlock Text="Os dados continuam em memória. Confira a pasta antes de tentar novamente." TextWrapping="Wrap" Margin="0,6,0,8" />
+                                <Button Content="Tentar salvar novamente" Command="{Binding RetrySaveCommand}" />
+                                <Button Content="Descartar sessão…" Command="{Binding DiscardCommand}" />
+                            </StackPanel>
+                        </Border>
+                        <Separator Margin="0,14,0,16" />
+                        <TextBlock Text="Inspecionar registros" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                        <Button Content="Abrir JSON salvo…" Command="{Binding OpenCommand}" />
+                        <TextBlock Text="Nenhum resultado é enviado a serviços externos. O JSON contém identificadores de rede; revise antes de compartilhar." TextWrapping="Wrap" FontSize="12" Foreground="#58737D" Margin="0,8,0,0" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+            <Grid Grid.Column="2">
+                <Grid DataContext="{Binding Result}">
+                    <TabControl Background="White" BorderBrush="#DBE5E8" Padding="14"
+                                SelectedIndex="{Binding DataContext.SelectedTabIndex, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}">
+                        <TabItem Header="Sinal" DataContext="{Binding DataContext.Signal, RelativeSource={RelativeSource AncestorType=Window}}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="4,12">
+                                <TextBlock Text="Potência do sinal Wi-Fi" FontSize="22" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Heading}" Foreground="#58737D" Margin="0,12,0,0" />
+                                <TextBlock Text="{Binding Value}" FontSize="38" Foreground="#006B70" FontWeight="SemiBold" Margin="0,2,0,4" AutomationProperties.Name="Sinal Wi-Fi em dBm" />
+                                <TextBlock Text="{Binding Source}" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Position}" Foreground="#58737D" Margin="0,5,0,14" />
+                                <controls:SignalChart Points="{Binding Points}" Height="270" ClipToBounds="True" AutomationProperties.Name="Histórico de RSSI em dBm" />
+                                <TextBlock Text="{Binding Availability}" Margin="0,14,0,6" />
+                                <TextBlock Text="{Binding Range}" />
+                                <TextBlock Text="{Binding LatestIssues}" TextWrapping="Wrap" Foreground="#AA3030" Margin="0,6,0,0" />
+                                <Border Background="#EAF3F4" Padding="12" CornerRadius="6" Margin="0,16,0,0">
+                                    <TextBlock Text="Cada ponto corresponde a uma leitura registrada. Lacunas e mudanças de contexto interrompem a linha. A frequência de atualização e a precisão dependem do driver." TextWrapping="Wrap" />
+                                </Border>
+                            </StackPanel></ScrollViewer>
+                        </TabItem>
+                        <TabItem Header="Resumo" IsEnabled="{Binding DataContext.HasResult, RelativeSource={RelativeSource AncestorType=Window}}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="4,12">
+                                <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,14" />
+                                <UniformGrid Columns="2">
+                                    <Border Style="{StaticResource Card}" Margin="0,0,6,6"><StackPanel><TextBlock Text="POSIÇÕES DESPACHADAS" Foreground="#58737D" FontSize="11" /><TextBlock Text="{Binding Positions}" FontSize="25" FontWeight="SemiBold" Margin="0,8,0,0" /></StackPanel></Border>
+                                    <Border Style="{StaticResource Card}" Margin="6,0,0,6"><StackPanel><TextBlock Text="ICMP" Foreground="#58737D" FontSize="11" /><TextBlock Text="{Binding Icmp}" FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,8,0,0" /></StackPanel></Border>
+                                    <Border Style="{StaticResource Card}" Margin="0,6,6,0"><StackPanel><TextBlock Text="RTT · SOMENTE SUCESSOS" Foreground="#58737D" FontSize="11" /><TextBlock Text="{Binding Rtt}" FontSize="16" TextWrapping="Wrap" Margin="0,8,0,0" /></StackPanel></Border>
+                                    <Border Style="{StaticResource Card}" Margin="6,6,0,0"><StackPanel><TextBlock Text="RSSI REGISTRADO" Foreground="#58737D" FontSize="11" /><TextBlock Text="{Binding Rssi}" FontSize="16" TextWrapping="Wrap" Margin="0,8,0,0" /></StackPanel></Border>
+                                </UniformGrid>
+                                <TextBlock Text="{Binding Availability}" TextWrapping="Wrap" Margin="0,18,0,8" />
+                                <TextBlock Text="{Binding Schedule}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                                <TextBlock Text="{Binding Sources}" TextWrapping="Wrap" Margin="0,0,0,16" />
+                                <Border Background="#EAF3F4" CornerRadius="6" Padding="12"><TextBlock Text="{Binding ContextNotice}" TextWrapping="Wrap" /></Border>
+                                <TextBlock Text="Estatísticas descritivas, sem diagnóstico automático de cobertura ou saúde da rede. Frequência em cache não representa uma nova recepção por consulta." Foreground="#58737D" TextWrapping="Wrap" Margin="0,14,0,0" />
+                            </StackPanel></ScrollViewer>
+                        </TabItem>
+                        <TabItem Header="Amostras" IsEnabled="{Binding DataContext.HasResult, RelativeSource={RelativeSource AncestorType=Window}}"><DataGrid ItemsSource="{Binding Samples}" Margin="0,12,0,0" AutomationProperties.Name="Amostras da sessão">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Posição" Binding="{Binding Position}" Width="65" />
+                                <DataGridTextColumn Header="Agenda" Binding="{Binding Disposition}" Width="160" />
+                                <DataGridTextColumn Header="Wi-Fi" Binding="{Binding Wifi}" Width="110" />
+                                <DataGridTextColumn Header="ICMP" Binding="{Binding Icmp}" Width="110" />
+                                <DataGridTextColumn Header="RTT" Binding="{Binding Rtt}" Width="100" />
+                                <DataGridTextColumn Header="RSSI" Binding="{Binding Rssi}" Width="100" />
+                                <DataGridTextColumn Header="Canal" Binding="{Binding Channel}" Width="100" />
+                                <DataGridTextColumn Header="Frequência / fonte" Binding="{Binding CachedFrequency}" Width="240" />
+                                <DataGridTextColumn Header="Fonte RSSI" Binding="{Binding RssiSource}" Width="160" />
+                                <DataGridTextColumn Header="Ocorrências (código)" Binding="{Binding Occurrences}" Width="350" />
+                            </DataGrid.Columns>
+                        </DataGrid></TabItem>
+                        <TabItem Header="Contexto" IsEnabled="{Binding DataContext.HasResult, RelativeSource={RelativeSource AncestorType=Window}}"><Grid Margin="0,12,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                            <TextBlock Text="{Binding ContextNotice}" TextWrapping="Wrap" Margin="0,0,0,14" />
+                            <DataGrid Grid.Row="1" ItemsSource="{Binding Context}"><DataGrid.Columns>
+                                <DataGridTextColumn Header="Campo" Binding="{Binding Field}" Width="200" />
+                                <DataGridTextColumn Header="Contexto registrado" Binding="{Binding State}" Width="*" />
+                            </DataGrid.Columns></DataGrid>
+                        </Grid></TabItem>
+                        <TabItem Header="Ocorrências" IsEnabled="{Binding DataContext.HasResult, RelativeSource={RelativeSource AncestorType=Window}}"><Grid Margin="0,12,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                            <TextBlock Text="{Binding OccurrenceNotice}" TextWrapping="Wrap" Margin="0,0,0,14" />
+                            <DataGrid Grid.Row="1" ItemsSource="{Binding Occurrences}"><DataGrid.Columns>
+                                <DataGridTextColumn Header="Tipo" Binding="{Binding Kind}" Width="*" />
+                                <DataGridTextColumn Header="Código nativo" Binding="{Binding Code}" Width="130" />
+                                <DataGridTextColumn Header="Posições" Binding="{Binding Positions}" Width="90" />
+                            </DataGrid.Columns></DataGrid>
+                        </Grid></TabItem>
+                    </TabControl>
+                </Grid>
+            </Grid>
+        </Grid>
+        <TextBlock Grid.Row="3" Text="{Binding SavedPath, StringFormat=Arquivo local: {0}}" TextWrapping="Wrap" Foreground="#58737D" FontSize="12" Margin="0,12,0,0" />
+    </Grid>
+</Window>

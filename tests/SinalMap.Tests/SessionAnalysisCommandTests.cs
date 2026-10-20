@@ -13,6 +13,34 @@ public sealed class SessionAnalysisCommandTests : IDisposable
     private string Input => Path.Combine(directory, "private-name.json");
 
     [Fact]
+    public async Task Context_warning_uses_recorded_bytes_and_omits_both_network_identities()
+    {
+        var session = await SessionComparerTests.CreateSession();
+        var samples = session.Samples.Take(3).ToArray();
+        samples[1] = samples[1] with { Wifi = samples[1].Wifi! with
+        {
+            Ssid = "SEGREDO-OUTRA-REDE", SsidHex = "6F74686572", Bssid = "02:00:00:00:00:02"
+        }};
+        samples[2] = samples[2] with { Wifi = samples[2].Wifi! with { Channel = null } };
+        await new JsonSessionStore().SaveAsync(session with { Samples = samples, BssidChanges = [] }, Input, CancellationToken.None);
+        var original = await File.ReadAllBytesAsync(Input);
+        var output = new StringWriter();
+        var error = new StringWriter();
+        Assert.Equal(0, await SessionReportCommand.ExecuteAsync(Input, output, error, CancellationToken.None));
+        var text = output.ToString();
+        Assert.Contains("SSID em bytes: variou nos registros", text);
+        Assert.Contains("AP (BSSID): variou nos registros", text);
+        Assert.Contains("Canal: indeterminado", text);
+        Assert.Contains("Atenção: o contexto variou", text);
+        Assert.Contains("Há contexto indeterminado", text);
+        Assert.Contains("média -55,00", text);
+        foreach (var secret in new[] { "SEGREDO-OUTRA-REDE", "6F74686572", "74657374", "02:00:00:00:00:01", "02:00:00:00:00:02" })
+            Assert.DoesNotContain(secret, text);
+        Assert.Equal("", error.ToString());
+        Assert.Equal(original, await File.ReadAllBytesAsync(Input));
+    }
+
+    [Fact]
     public async Task Analysis_is_read_only_and_omits_identifiers_paths_and_untrusted_text()
     {
         const string secret = "IDENTIFICADOR-NAO-PUBLICAR";

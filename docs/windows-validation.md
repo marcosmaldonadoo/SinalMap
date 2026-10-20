@@ -1,8 +1,8 @@
 # Validação manual da coleta no Windows
 
-**Estado: casos principais de coleta, interrupção, permissão e rejeição de rota evidenciados em hardware real; aceite final da Fase 0 pendente.** O [registro da análise de uma sessão estável](validacao-coleta-estavel.md) documenta o JSON examinado com o adaptador MediaTek Wi-Fi 6 MT7921. A [validação manual complementar](validacao-manual-complementar.md) registra os resumos fornecidos para comparação de locais, cancelamento, desconexão, reconexão, permissão negada e rota pela Ethernet. Os JSONs dessa rodada complementar não foram recebidos nem examinados integralmente. Testes simulados e runners hospedados continuam distintos dessa evidência e não certificam precisão de RSSI.
+**Estado: casos principais de coleta, interrupção, permissão e rejeição de rota evidenciados em hardware real; alcance e limites aceitos para o piloto WPF técnico em 2026-10-20.** O [registro da análise de uma sessão estável](validacao-coleta-estavel.md) documenta o JSON examinado com o adaptador MediaTek Wi-Fi 6 MT7921. A [validação manual complementar](validacao-manual-complementar.md) registra os resumos fornecidos para comparação de locais, cancelamento, desconexão, reconexão, permissão negada e rota pela Ethernet. Os JSONs dessa rodada complementar não foram recebidos nem examinados integralmente. Testes simulados e runners hospedados continuam distintos dessa evidência e não certificam precisão de RSSI.
 
-Não avançar para WPF antes de concluir este roteiro e registrar o aceite. Ausência de uma métrica por limitação do driver pode ser aceita se estiver representada como ausência com causa, sem dados estimados.
+Em 2026-10-20, o responsável aceitou o alcance demonstrado e os casos físicos não exercitados para o piloto WPF técnico, conforme o [parecer](parecer-fase-0.md). As lacunas abaixo permanecem pendentes; o avanço não implica sua aprovação. Ausência de uma métrica por limitação do driver pode ser aceita se estiver representada como ausência com causa, sem dados estimados.
 
 ## Preparação
 
@@ -91,6 +91,6 @@ Os ticks devem ser interpretados com `$s.monotonicFrequency`. Compare SSID/BSSID
 - [x] Retomada após reconexão evidenciada por interrupção relatada, posições sem conexão e estado final conectado.
 - [x] Rota pela Ethernet rejeitada nas 60 posições, índices distintos e `sendAttempted=false`, conforme resumo e inspeção local relatados.
 - [x] Cache BSS e temporização da coleta examinados no JSON.
-- [ ] Decisão registrada sobre o que o driver permite coletar na próxima fase.
+- [x] Decisão registrada sobre o que o driver permite coletar na próxima fase: piloto técnico limitado aprovado em 2026-10-20, mantendo os limites do parecer.
 
 Os itens complementares marcados acima têm a origem e os limites descritos no [registro dos testes manuais](validacao-manual-complementar.md). O [parecer da Fase 0](parecer-fase-0.md) distingue casos demonstrados, cenários ainda não exercitados e a decisão de avanço de fase. O item de campos sem suporte continua sem ensaio físico específico; essa limitação precisa ser aceita explicitamente, sem declarar um teste que não ocorreu. Os JSONs da validação devem continuar locais até revisão dos identificadores de rede. Não preencher este checklist com resultados simulados.

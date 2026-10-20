@@ -52,6 +52,19 @@ internal static class SessionReportCommand
         WriteMetric("RSSI registrado (dBm)", summary.RssiDbm);
         output.WriteLine($"Fontes RSSI: principal {summary.PrimaryRssi}; alternativa {summary.AlternativeRssi}; outra ou não identificada {summary.OtherRssiSource}.");
         output.WriteLine($"Métricas por posição: canal {summary.Channels}/{summary.Positions}; frequência {summary.Frequencies}/{summary.Positions}, sendo {summary.CachedFrequencies} identificadas como cache BSS.");
+        output.WriteLine("Contexto registrado nas observações conectadas (sem identificadores):");
+        WriteContext("Interface registrada", summary.Context.Interface);
+        WriteContext("SSID em bytes", summary.Context.Ssid);
+        WriteContext("AP (BSSID)", summary.Context.Bssid);
+        WriteContext("Destino ICMP", summary.Context.Target);
+        WriteContext("Canal", summary.Context.Channel);
+        WriteContext("Frequência em cache BSS", summary.Context.CachedFrequency);
+        WriteContext("Fonte RSSI reconhecida", summary.Context.RssiSource);
+        if (summary.Context.HasVariation)
+            output.WriteLine("Atenção: o contexto variou nos registros; as médias globais podem reunir redes, APs ou condições de medição diferentes.");
+        if (summary.Context.HasUnknown)
+            output.WriteLine("Há contexto indeterminado por dados ausentes, inválidos ou fontes não reconhecidas; isso não comprova igualdade nem mudança.");
+        output.WriteLine("As estatísticas são globais, sem separação por rede ou AP. Um único valor nos registros não comprova conexão contínua nem ausência de mudanças entre leituras.");
         if (summary.Issues.Count == 0)
             output.WriteLine("Nenhuma ocorrência registrada.");
         else
@@ -61,6 +74,13 @@ internal static class SessionReportCommand
                 output.WriteLine($"  {issue.Kind}; código {issue.NativeCode?.ToString(culture) ?? "n/a"}: {issue.AffectedPositions}");
         }
         output.WriteLine("Este resumo não certifica precisão do driver nem saúde da rede. Frequência em cache não é uma nova recepção por consulta.");
+
+        void WriteContext(string label, RecordedContextState state) => output.WriteLine($"  {label}: {state switch
+        {
+            RecordedContextState.SingleValue => "um único valor nos registros considerados",
+            RecordedContextState.Varied => "variou nos registros",
+            _ => "indeterminado"
+        }}.");
 
         void WriteMetric(string label, NumericSummary metric) => output.WriteLine(metric.Count == 0
             ? $"{label}: sem valores registrados."

@@ -1,8 +1,5 @@
-using System.Globalization;
-using System.Net;
-using System.Net.NetworkInformation;
-using System.Net.Sockets;
 using SinalMap.Domain;
+using static SinalMap.Application.RecordedContextValues;
 
 namespace SinalMap.Application;
 
@@ -50,9 +47,6 @@ public static class SessionComparer
         return new(a, b, context, latency, rssi);
     }
 
-    private static WifiSnapshot[] Connected(ProbeSession session) => session.Samples
-        .Where(s => s.Wifi?.State == WifiConnectionState.Connected).Select(s => s.Wifi!).ToArray();
-
     private static bool AllSame(params ContextComparison[] values) => values.All(v => v == ContextComparison.Same);
 
     private static ContextComparison CompareValues(IEnumerable<string?> first, IEnumerable<string?> second)
@@ -65,33 +59,4 @@ public static class SessionComparer
         if (a.Length == 0 || b.Length == 0 || a.Any(v => v is null) || b.Any(v => v is null)) return ContextComparison.Unknown;
         return distinctA.SetEquals(distinctB) ? ContextComparison.Same : ContextComparison.Different;
     }
-
-    private static string? NormalizeGuid(Guid value) => value == Guid.Empty ? null : value.ToString("D");
-
-    private static string? NormalizeSsid(string? hex)
-    {
-        if (string.IsNullOrEmpty(hex) || hex.Length > 64 || hex.Length % 2 != 0) return null;
-        try { return Convert.ToHexString(Convert.FromHexString(hex)); }
-        catch (FormatException) { return null; }
-    }
-
-    private static string? NormalizeBssid(string? text)
-    {
-        if (!PhysicalAddress.TryParse(text, out var address)) return null;
-        var bytes = address.GetAddressBytes();
-        return bytes.Length == 6 && bytes.Any(b => b != 0) ? Convert.ToHexString(bytes) : null;
-    }
-
-    private static string? NormalizeTarget(string? text) =>
-        IPAddress.TryParse(text, out var address) && address.AddressFamily == AddressFamily.InterNetwork && address.ToString() == text
-            ? address.ToString() : null;
-
-    private static string? Channel(WifiSnapshot wifi) => wifi.Channel is > 0 &&
-        wifi.ChannelSource == "WlanQueryInterface:channel_number" ? wifi.Channel.Value.ToString(CultureInfo.InvariantCulture) : null;
-
-    private static string? Frequency(WifiSnapshot wifi) => wifi.FrequencyKHz is > 0 &&
-        wifi.FrequencySource == "WlanGetNetworkBssList:ulChCenterFrequency (cached)" ? wifi.FrequencyKHz.Value.ToString(CultureInfo.InvariantCulture) : null;
-
-    private static string? RssiSource(WifiSnapshot wifi) => wifi.RssiSource is "WlanQueryInterface:rssi" or
-        "WlanQueryInterface:realtime_connection_quality.linksInfo[0].lRssi" ? wifi.RssiSource : null;
 }

@@ -14,7 +14,7 @@ public sealed record SessionSummary(
     NumericSummary LatencyMilliseconds, NumericSummary RssiDbm,
     int PrimaryRssi, int AlternativeRssi, int OtherRssiSource,
     int Channels, int Frequencies, int CachedFrequencies, int BssidChanges,
-    IReadOnlyList<IssueCount> Issues);
+    IReadOnlyList<IssueCount> Issues, SessionContextSummary Context);
 
 public static class SessionAnalyzer
 {
@@ -50,7 +50,7 @@ public static class SessionAnalyzer
             samples.Count(s => s.Wifi?.FrequencyKHz is not null),
             samples.Count(s => s.Wifi?.FrequencyKHz is not null &&
                 s.Wifi.FrequencySource == "WlanGetNetworkBssList:ulChCenterFrequency (cached)"),
-            session.BssidChanges.Count, issues);
+            session.BssidChanges.Count, issues, SessionContextSummary.FromSession(session));
     }
 
     private static NumericSummary Describe(IEnumerable<double> values)

@@ -15,5 +15,6 @@
   <ItemGroup>
     <Using Include="Xunit" />
     <ProjectReference Include="../../src/SinalMap.Console.Probe/SinalMap.Console.Probe.csproj" />
+    <ProjectReference Include="../../src/SinalMap.Presentation/SinalMap.Presentation.csproj" />
   </ItemGroup>
 </Project>

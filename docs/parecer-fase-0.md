@@ -1,12 +1,12 @@
 # Parecer técnico da Fase 0
 
-Data: 2026-10-18. **Estado: prova de coleta demonstrada no perfil relatado; aceite do responsável e avanço de fase pendentes.**
+Data do parecer: 2026-10-18. **Atualização em 2026-10-20: alcance e limites aceitos pelo responsável para o piloto WPF técnico, após revisão da proposta e nova coleta física.** O aceite não aprova cenários não exercitados nem certifica site survey ou precisão de RF.
 
 ## Conclusão proposta
 
 A evidência é suficiente para propor uma janela WPF técnica que reutilize a coleta existente, mantendo os limites deste parecer. A conclusão vale para a prova de conceito no ambiente examinado; não representa certificação de RF, suporte universal de drivers ou validação de site survey completo. Nenhum código de interface gráfica foi implementado nesta etapa.
 
-O merge deste documento registra o parecer para revisão. O responsável ainda precisa aceitar o alcance da prova, os casos não exercitados e a [proposta concreta da próxima fase](proposta-fase-1-wpf.md), conforme a regra de avanço de fase do [AGENTS.md](../AGENTS.md).
+O merge original deste documento registrou o parecer para revisão. Em 2026-10-20, o responsável solicitou o avanço para a [proposta concreta da próxima fase](proposta-fase-1-wpf.md), conforme a regra do [AGENTS.md](../AGENTS.md), após revisar a proposta e executar uma nova coleta física. O registro dessa coleta está no [relatório de validação](validation-report.md).
 
 ## Origem da evidência
 
@@ -37,7 +37,7 @@ Os 136 testes existentes também cobrem campos não suportados, bloqueio do tran
 
 1. RSSI constante nas duas sessões comparadas e variável em outras execuções. A precisão, a calibração, a taxa de atualização do driver e a resposta à distância não foram comprovadas.
 2. Frequência identificada como cache BSS. Uma consulta por segundo não garante uma nova recepção por segundo. Não há conversão de qualidade percentual em RSSI ou derivação de canal/frequência como dados medidos.
-3. Os campos principais estavam disponíveis no adaptador. Não houve caso físico específico de campo sem suporte; a alternativa RSSI e os casos MLO permanecem cobertos por simulação, sem comprovação no adaptador real.
+3. Os campos principais estavam disponíveis no adaptador. Não houve caso físico específico de campo sem suporte. Na evidência original deste parecer, a alternativa RSSI e MLO tinham somente simulação. Posteriormente, a [coleta do sinal ao vivo de 2026-10-20](sinal-ao-vivo.md) registrou seis valores da alternativa no mesmo perfil, preservando o erro 27 da consulta principal. MLO continua sem comprovação física.
 4. Nenhum roaming ou troca de SSID foi exercitado em hardware. Zero eventos de BSSID não comprova ausência de transições entre as leituras.
 5. O caso de rota usou Ethernet; VPNs específicas continuam sem ensaio físico. A consulta prévia de rota não fixa o endereço de origem nem elimina a corrida antes do envio. Não houve captura de pacotes.
 6. Ocorreram timeouts reais, mas não foi feito um ensaio separado com um host conhecido que bloqueie ICMP. Os registros não identificam a causa das perdas como interferência ou sinal fraco.
@@ -47,11 +47,11 @@ Os 136 testes existentes também cobrem campos não suportados, bloqueio do tran
 
 Esses casos continuam identificados como não exercitados ou não comprovados. Aceitar o parecer significa aceitar esses limites para uma interface técnica limitada, não marcar os testes ausentes como aprovados.
 
-## Decisão aguardada
+## Decisão registrada em 2026-10-20
 
 - [x] Evidências recebidas e limites consolidados, sem identificadores reais de rede no repositório.
-- [ ] Responsável aceita o alcance da Fase 0 e os casos físicos não exercitados para o piloto técnico.
-- [ ] Responsável aprova o escopo e os riscos da janela WPF proposta.
-- [ ] Após a decisão, registrar o aceite e atualizar o escopo vigente antes de integrar código da próxima fase.
+- [x] Responsável aceita o alcance da Fase 0 e os casos físicos não exercitados para o piloto técnico.
+- [x] Responsável aprova o escopo e os riscos da janela WPF proposta.
+- [x] Aceite registrado e escopo vigente atualizado em `AGENTS.md` para implementar a próxima fase.
 
-Até essa decisão, o escopo vigente permanece o console da Fase 0 definido em `AGENTS.md`.
+O escopo vigente inclui o console e a janela WPF técnica, conforme `AGENTS.md`. Plantas, pontos e mapas continuam fora do incremento aprovado.

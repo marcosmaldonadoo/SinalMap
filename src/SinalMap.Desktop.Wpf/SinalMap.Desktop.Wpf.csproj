@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SinalMap.Presentation/SinalMap.Presentation.csproj" />
+    <ProjectReference Include="../SinalMap.Infrastructure.Windows/SinalMap.Infrastructure.Windows.csproj" />
+    <Resource Include="../../docs/assets/sinalmap-logo.png" Link="Assets/sinalmap-logo.png" />
+  </ItemGroup>
+</Project>

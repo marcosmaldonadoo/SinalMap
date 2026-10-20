@@ -6,11 +6,11 @@
 
 A logo apresenta a identidade visual que servirá de referência para a futura interface.
 
-Prova de conceito open source de coleta Wi-Fi para Windows. Esta entrega implementa **somente a Fase 0**: console, Native Wi-Fi API, ICMP, JSON local e testes com adaptadores simulados.
+Prova de conceito open source de coleta Wi-Fi para Windows. Inclui o console da **Fase 0** e o piloto da **Fase 1: janela WPF técnica**, que reutiliza Native Wi-Fi API, ICMP, JSON local e análise descritiva.
 
 A documentação do projeto é mantida em **português brasileiro**. A versão em inglês será preparada em uma etapa futura.
 
-O objetivo é validar os dados fornecidos pelo Windows e pelos drivers antes de desenvolver a interface WPF, a importação de plantas ou mapas de calor. Esses recursos ainda não fazem parte desta versão.
+O objetivo é inspecionar os dados fornecidos pelo Windows e pelos drivers sem inventar medições. A janela técnica permite operar a coleta existente. Importação de plantas, marcação de pontos e mapas de calor ficam para uma proposta posterior.
 
 ## Pré-requisitos
 
@@ -19,7 +19,7 @@ O objetivo é validar os dados fornecidos pelo Windows e pelos drivers antes de 
 - Permissão de localização quando exigida pelo Windows para consultar SSID/BSSID. `ERROR_ACCESS_DENIED` é registrado com orientação; executar como administrador não substitui consentimento.
 - Um **IPv4 de destino explícito**, preferencialmente o gateway dessa rede. Não há destino externo padrão nem resolução DNS.
 
-Domain, Application e os testes simulados também compilam em Linux. O console recusa coleta nativa fora do Windows. A infraestrutura usa `net10.0` com verificação de plataforma em execução para permitir testar o código de adaptação sem carregar DLLs do Windows.
+Domain, Application, Presentation e os testes simulados também compilam em Linux. O console recusa coleta nativa fora do Windows; WPF executa somente em Windows. A infraestrutura usa `net10.0` com verificação de plataforma em execução para permitir testar o código de adaptação sem carregar DLLs do Windows.
 
 ## Compilar e testar
 
@@ -31,9 +31,23 @@ dotnet build SinalMap.sln -c Release --no-restore
 dotnet test SinalMap.sln -c Release --no-build --no-restore
 ```
 
-O código da Fase 0 está integrado à branch principal, `main`.
+No Linux, restaure, compile e teste `tests/SinalMap.Tests/SinalMap.Tests.csproj` em vez da solução completa. Esse projeto inclui as dependências compartilhadas e o console, sem WPF. O CI distingue esses alvos.
 
-As dependências externas são usadas somente pelo projeto de testes: xUnit e Microsoft.NET.Test.Sdk. O executável usa apenas a biblioteca padrão do .NET e as APIs do Windows.
+As dependências externas são usadas somente pelo projeto de testes: xUnit e Microsoft.NET.Test.Sdk. Os executáveis usam .NET, WPF e as APIs do Windows, sem biblioteca externa de MVVM.
+
+## Abrir a janela técnica no Windows
+
+```powershell
+dotnet run --project src/SinalMap.Desktop.Wpf -c Release
+```
+
+Atualize as interfaces, selecione uma conectada, informe o IPv4 autorizado e confira a pasta de resultados. A pasta padrão é `Documentos/SinalMap/results`, independente do diretório de onde o aplicativo foi aberto. A coleta dura 60 segundos. A aba **Sinal** mostra a última leitura em **dBm** e o gráfico atualizado durante a aquisição; resumo, tabela completa, contexto e ocorrências ficam disponíveis ao terminar.
+
+O valor de sinal vem do adaptador, por exemplo `−60 dBm`; ele não é fixado nem convertido de porcentagem. Leituras ausentes ficam indisponíveis e interrompem a linha. Ao abrir um JSON, o mesmo gráfico mostra o histórico salvo. Consulte os [critérios do sinal ao vivo](docs/sinal-ao-vivo.md).
+
+Cancelar ou fechar durante a coleta solicita cancelamento e aguarda o salvamento parcial. Se a gravação falhar, a janela mantém a sessão em memória, bloqueia sua substituição e permite escolher outra pasta para tentar novamente. Descartar uma sessão não salva exige confirmação explícita. Encerramento forçado ainda pode perder esses dados.
+
+Use **Abrir JSON** (`Ctrl+O`) para analisar um arquivo existente sem iniciar ICMP; `F5` atualiza as interfaces. O [roteiro WPF](docs/validacao-wpf.md) informa o estado das verificações e as limitações do piloto.
 
 ## Executar no Windows
 
@@ -61,7 +75,7 @@ Códigos de saída: `0` sessão concluída com alguma leitura Wi-Fi válida; `1`
 dotnet run --project src/SinalMap.Console.Probe -c Release -- --analyze results/ponto-01.json
 ```
 
-O resumo local informa posições, resultados ICMP, estatísticas de RTT/RSSI, disponibilidade das métricas, fontes e ocorrências, sem exibir os identificadores da rede. Funciona também em Linux e preserva o JSON original. Consulte os [critérios, limites e códigos de saída da análise](docs/analise-local.md). O resumo auxilia a inspeção e não substitui a validação em hardware.
+O resumo local informa posições, resultados ICMP, estatísticas de RTT/RSSI, disponibilidade das métricas, fontes e ocorrências, sem exibir os identificadores da rede. Também indica variações e informações indeterminadas do contexto registrado, para ajudar a interpretar médias globais que podem reunir redes, APs ou condições de medição diferentes. Funciona também em Linux e preserva o JSON original. Consulte os [critérios, limites e códigos de saída da análise](docs/analise-local.md). O resumo auxilia a inspeção e não substitui a validação em hardware.
 
 Para comparar duas coletas salvas:
 
@@ -98,6 +112,8 @@ Antes de cada ping, a rota deve apontar para o adaptador Wi-Fi selecionado. Caso
 - `src/SinalMap.Application`: interfaces de coleta/ICMP/relógio/persistência e agendamento.
 - `src/SinalMap.Infrastructure.Windows`: P/Invoke, recursos nativos seguros, coleta Windows, ICMP e JSON.
 - `src/SinalMap.Console.Probe`: composição e argumentos do console.
+- `src/SinalMap.Presentation`: estado da operação, comandos e projeção dos resultados, sem controles WPF.
+- `src/SinalMap.Desktop.Wpf`: janela Windows, bindings, diálogos locais e composição.
 - `tests/SinalMap.Tests`: simulações, agendamento, serialização, ABI e propriedade dos buffers/handles.
 
 Leia o [plano da Fase 0](docs/phase-0-plan.md), as [limitações e APIs](docs/api-and-limitations.md) e o [roteiro de validação no Windows](docs/windows-validation.md).
@@ -112,7 +128,7 @@ O teste de localização negada também foi relatado: 57 posições com código 
 
 A rota pela Ethernet foi rejeitada nas 60 posições, com índices diferentes e `sendAttempted=false`, mantendo 60 leituras Wi-Fi. O ambiente foi identificado como Windows 11 Pro e MediaTek MT7921 com driver 3.5.0.1349. Esses resultados descrevem o perfil testado, sem certificar precisão de RSSI ou compatibilidade universal de drivers.
 
-O [parecer da Fase 0](docs/parecer-fase-0.md) consolida as evidências e propõe uma continuação limitada, sujeita ao aceite do responsável. Campos sem suporte, consulta RSSI alternativa, roaming e túneis específicos permanecem sem validação física. A [proposta de janela WPF técnica](docs/proposta-fase-1-wpf.md) contém escopo, arquivos, APIs, riscos e verificações para revisão; sua implementação ainda não começou. O [roteiro no Windows](docs/windows-validation.md) preserva as pendências.
+O [parecer da Fase 0](docs/parecer-fase-0.md) consolida as evidências e os limites aceitos pelo responsável em 2026-10-20 para a continuação técnica. A [inspeção do sinal ao vivo](docs/sinal-ao-vivo.md) também registrou seis valores da alternativa RSSI no perfil MediaTek, preservando os erros da consulta principal. Campos sem suporte, MLO, roaming e túneis específicos permanecem sem validação física. A [proposta de janela WPF](docs/proposta-fase-1-wpf.md) teve seu escopo aprovado; o [roteiro WPF](docs/validacao-wpf.md) registra as verificações do piloto. O [roteiro no Windows](docs/windows-validation.md) preserva as pendências da coleta.
 
 ## Privacidade e licença
 

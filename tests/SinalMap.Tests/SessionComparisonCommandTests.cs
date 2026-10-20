@@ -10,6 +10,23 @@ public sealed class SessionComparisonCommandTests : IDisposable
     private ComparisonFiles Files => new(Path.Combine(directory, "private-a.json"), Path.Combine(directory, "private-b.json"));
 
     [Fact]
+    public async Task Comparison_includes_context_warning_in_the_affected_session_summary()
+    {
+        var first = await SessionComparerTests.CreateSession();
+        var second = await SessionComparerTests.CreateSession();
+        var samples = second.Samples.ToArray();
+        samples[0] = samples[0] with { Wifi = samples[0].Wifi! with { Bssid = "02:00:00:00:00:02" } };
+        await Save(first, second with { Samples = samples });
+        var output = new StringWriter();
+        Assert.Equal(0, await SessionComparisonCommand.ExecuteAsync(Files, output, new StringWriter(), CancellationToken.None));
+        var text = output.ToString();
+        Assert.DoesNotContain("Atenção: o contexto variou", text[..text.IndexOf("Coleta B:", StringComparison.Ordinal)]);
+        Assert.Contains("Atenção: o contexto variou", text[text.IndexOf("Coleta B:", StringComparison.Ordinal)..]);
+        Assert.Contains("RSSI (B − A): não calculada", text);
+        Assert.DoesNotContain("02:00:00:00:00:02", text);
+    }
+
+    [Fact]
     public async Task Comparison_preserves_both_files_and_omits_identifiers_and_untrusted_text()
     {
         const string secret = "SEGREDO-NAO-PUBLICAR";

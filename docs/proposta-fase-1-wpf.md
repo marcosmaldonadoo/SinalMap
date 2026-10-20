@@ -1,6 +1,6 @@
 # Proposta da Fase 1: janela WPF técnica
 
-**Estado: proposta para revisão do responsável; implementação não iniciada.** Depende do aceite do [parecer da Fase 0](parecer-fase-0.md), incluindo os cenários físicos ainda não exercitados. A aprovação desta proposta é a revisão de uma grande mudança prevista no [AGENTS.md](../AGENTS.md).
+**Estado: escopo aprovado pelo responsável em 2026-10-20; piloto técnico implementado localmente.** Após a revisão desta proposta e uma nova coleta física, o responsável solicitou o avanço, aceitando o alcance e os limites do [parecer da Fase 0](parecer-fase-0.md). Casos físicos ainda não exercitados continuam identificados como pendentes. O [roteiro WPF](validacao-wpf.md) registra as verificações da janela e as pendências de validação.
 
 ## Resultado proposto
 
@@ -14,7 +14,7 @@ Fluxo previsto:
 4. Após a conclusão/cancelamento, mostrar contadores, resultados ICMP, RTT apenas em sucesso, RSSI disponível, fontes, frequência marcada como cache e ocorrências.
 5. Abrir um JSON salvo e exibir sua análise descritiva local.
 
-A janela indicará os estados de operação e de salvamento. O primeiro incremento exibirá as amostras e o resumo depois do retorno de `ProbeRunner`; não exige adicionar publicação de amostras em tempo real ao coletor. Indicadores de atividade não serão apresentados como medições recebidas. Contextos variáveis e métricas ausentes precisam ficar explícitos, sem interpretar médias como diagnóstico de cobertura.
+A janela indicará os estados de operação e de salvamento. O primeiro incremento exibiu as amostras e o resumo depois do retorno de `ProbeRunner`. Em 2026-10-20, o responsável solicitou o valor de sinal em dBm e seu histórico ao vivo; essa extensão publica as amostras concluídas por canal não bloqueante, mantendo a agenda e o formato de dados. Indicadores de atividade não são apresentados como medições recebidas. Contextos variáveis e métricas ausentes ficam explícitos, sem interpretar médias como diagnóstico de cobertura. Consulte os [critérios do sinal ao vivo](sinal-ao-vivo.md).
 
 ## Plano de arquivos
 
@@ -22,11 +22,11 @@ A janela indicará os estados de operação e de salvamento. O primeiro incremen
 |---|---|
 | `src/SinalMap.Presentation/SinalMap.Presentation.csproj` | Apresentação em `net10.0`, sem dependência dos controles WPF, para testes com adaptadores simulados |
 | `Presentation/ProbeViewModel.cs`, `SessionResultViewModel.cs` | Estado da operação, validação de entrada, cancelamento, persistência e projeção dos resultados |
-| `Presentation/AsyncCommand.cs`, `IOutputFolderPicker.cs` | Comandos assíncronos sem execução duplicada e fronteira testável para escolha de pasta |
+| `Presentation/AsyncCommand.cs`, `IProbeDialogs.cs` | Comandos assíncronos sem execução duplicada e fronteira testável para escolha de pasta/arquivo e confirmação de descarte |
 | `src/SinalMap.Desktop.Wpf/SinalMap.Desktop.Wpf.csproj` | Executável `net10.0-windows`, `UseWPF=true`, referências à apresentação e infraestrutura |
 | `Desktop.Wpf/App.xaml`, `App.xaml.cs` | Inicialização e composição com os serviços existentes |
 | `Desktop.Wpf/MainWindow.xaml`, `MainWindow.xaml.cs` | Layout, bindings e integração do fechamento da janela com cancelamento/salvamento |
-| `Desktop.Wpf/Services/OutputFolderPicker.cs` | Adaptador de diálogo nativo para pasta local |
+| `Desktop.Wpf/Services/ProbeDialogs.cs` | Adaptador de diálogos nativos para pasta/arquivo locais e confirmação de descarte |
 | `tests/SinalMap.Tests/ProbeViewModelTests.cs`, `AsyncCommandTests.cs` | Fluxos de coleta, falhas, cancelamento, salvamento, valores ausentes e prevenção de duplicidade |
 | `SinalMap.sln`, `.github/workflows/ci.yml` | Inclusão dos projetos; compilação WPF em Windows e testes dos componentes compartilhados em Windows/Linux |
 | `docs/validacao-wpf.md`, `README.md` | Execução e roteiro manual da janela, com estado real de validação |

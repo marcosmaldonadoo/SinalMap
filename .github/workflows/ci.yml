@@ -1,4 +1,4 @@
-name: Fase 0 — compilação e testes simulados
+name: Console, apresentação e WPF — compilação e testes
 
 on:
   push:
@@ -12,7 +12,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            target: tests/SinalMap.Tests/SinalMap.Tests.csproj
+          - os: windows-latest
+            target: SinalMap.sln
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -21,9 +25,9 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - run: dotnet restore SinalMap.sln
-      - run: dotnet build SinalMap.sln -c Release --no-restore
-      - run: dotnet test SinalMap.sln -c Release --no-build --no-restore --logger trx --results-directory TestResults
+      - run: dotnet restore ${{ matrix.target }}
+      - run: dotnet build ${{ matrix.target }} -c Release --no-restore
+      - run: dotnet test ${{ matrix.target }} -c Release --no-build --no-restore --logger trx --results-directory TestResults
       - uses: actions/upload-artifact@v4
         if: always()
         with:

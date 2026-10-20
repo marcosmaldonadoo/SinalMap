@@ -17,11 +17,18 @@ Para um caminho com espaços, use aspas. A análise é uma operação separada d
 - Mínimo, média e máximo de RSSI usam os valores registrados, sem conversão de qualidade percentual ou estimativa. A disponibilidade informa quantos valores existem; as fontes principal, alternativa e outra/não identificada são contadas separadamente.
 - Canal e frequência têm contadores próprios. A frequência só é contada como cache BSS quando sua fonte corresponde à usada pelo coletor; outras fontes não recebem esse rótulo automaticamente.
 - As mudanças de BSSID são as entradas registradas na sessão. O resumo não determina o instante exato ou a duração do roaming.
+- O contexto informa, para interface, SSID em bytes, BSSID, destino ICMP, canal, frequência em cache e fonte RSSI, se há um único valor nos registros considerados, variação ou informação indeterminada. Não imprime os valores desses campos.
 - Ocorrências são agrupadas por tipo e código nativo, contando posições afetadas. A mesma categoria/código repetida em vários campos de uma posição conta uma vez. Uma posição pode aparecer em várias categorias.
 
 Quando não há valores de uma métrica, a saída informa essa ausência. As estatísticas são cálculos descritivos dos registros, sem classificação automática de saúde da rede, estimativa de cobertura ou certificação da precisão do driver.
 
-As estatísticas são globais da sessão, sem agrupamento por SSID ou BSSID. Se a conexão mudar durante a coleta, os valores podem abranger redes ou APs diferentes; o resumo isolado não representa uma única conexão estável. Examine os snapshots e eventos locais, além dos contextos apresentados por `--compare`, antes de interpretar médias como resultado de um ponto de teste.
+As estatísticas são globais da sessão, sem agrupamento por SSID ou BSSID. O resumo agora avisa quando o contexto varia nos registros; os valores podem abranger redes, APs ou condições de medição diferentes. A indicação é obtida dos snapshots, independentemente da lista de eventos de BSSID. Examine os snapshots e eventos locais antes de interpretar médias como resultado de um ponto de teste. Os dois resumos apresentados por `--compare` também incluem essas indicações.
+
+Para o contexto de rádio, são consideradas somente observações Wi-Fi conectadas. A interface inclui também o GUID do cabeçalho; o destino ICMP vem do cabeçalho da sessão. O SSID é comparado em bytes, sem depender de sua conversão para texto, e formatos equivalentes de BSSID são normalizados. Canal e frequência exigem fontes reconhecidas pelo coletor. A fonte RSSI é examinada somente nas observações que contêm valor de RSSI.
+
+Dois ou mais valores reconhecidos distintos indicam variação, mesmo que existam lacunas adicionais. Se não há valores, ou há valor ausente, inválido ou de fonte não reconhecida sem variação demonstrada, o campo fica indeterminado. Ausência não comprova igualdade nem mudança. Uma observação desconectada ou indisponível não fornece uma identidade antiga como contexto novo; os contadores de conexão e de disponibilidade continuam separados.
+
+Um único valor nos registros considerados não comprova conexão contínua, ausência de roaming entre consultas ou estabilidade física. As médias continuam sendo exibidas como estatísticas descritivas globais; não são alteradas, segmentadas nem convertidas em diagnóstico por esses avisos.
 
 ## Privacidade
 
