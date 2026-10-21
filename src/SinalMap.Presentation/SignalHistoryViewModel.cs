@@ -1,4 +1,5 @@
 using System.Globalization;
+using SinalMap.Application;
 using SinalMap.Domain;
 
 namespace SinalMap.Presentation;
@@ -12,12 +13,28 @@ public sealed class SignalHistoryViewModel : ObservableObject
     private bool collecting;
     private bool preview;
     private int previewSequence;
+    private int historyRevision;
+    public int HistoryRevision => historyRevision;
     private string refreshNotice = "";
     public string RefreshNotice { get => refreshNotice; private set => Set(ref refreshNotice, value); }
-    public void DescribeRefresh(string notice) => RefreshNotice = notice;
+    private string refreshSummary = "";
+    public string RefreshSummary { get => refreshSummary; private set => Set(ref refreshSummary, value); }
+    public void DescribeRefresh(string notice, string? summary = null)
+    {
+        RefreshNotice = notice;
+        RefreshSummary = summary ?? notice;
+    }
     private ProbeSample? latest;
     private IReadOnlyList<SignalPoint> points = [];
     public IReadOnlyList<SignalPoint> Points => points;
+    public bool IsCollecting => collecting;
+    public string HistoryTitle => preview ? "Último minuto" : collecting ? "Coleta em andamento" : points.Count > 0 ? "Histórico do sinal" : "Aguardando leituras";
+    public string HistoryHint => preview ? "Acompanhamento ao vivo · não grava arquivo" : collecting ?
+        "As posições são exibidas conforme a consulta Wi-Fi termina." : points.Count > 0 ? "Leituras preservadas no arquivo da coleta." :
+        "Selecione uma interface conectada ou abra uma coleta salva.";
+    public int ProcessedPositions => samples.Values.Count(s => s.Disposition != SlotDisposition.CancelledBeforeDispatch);
+    public double ProgressValue => Math.Clamp(ProcessedPositions * 100d / ProbeOptions.SampleCount, 0, 100);
+    public string ProgressLabel => $"{ProcessedPositions} de {ProbeOptions.SampleCount} posições processadas";
     public string TimeAxisLabel => preview ? "Janela recente (s)" : "Tempo planejado (s)";
     public string Heading => preview ? "Sinal da interface selecionada" : collecting ? "Sinal atual" : "Última leitura registrada";
     public string StateLabel => preview ? "MONITORANDO" : collecting ? "COLETANDO" : points.Count > 0 ? "HISTÓRICO" : "AGUARDANDO";
@@ -27,6 +44,8 @@ public sealed class SignalHistoryViewModel : ObservableObject
         (preview ? "leituras recentes com RSSI · sem gravação" : "posições com RSSI");
     public bool HasIssues => !string.IsNullOrEmpty(LatestIssues);
     public string Value => Rssi(latest) is { } value ? $"{value} dBm" : "Indisponível";
+    public int? CurrentRssiDbm => Rssi(latest);
+    public string NumericValue => CurrentRssiDbm?.ToString(CultureInfo.InvariantCulture) ?? "—";
     public string Source => Rssi(latest) is null ? "Sem RSSI válido nesta posição" : latest!.Wifi!.RssiSource switch
     {
         "WlanQueryInterface:rssi" => "Fonte: consulta RSSI do Windows",
@@ -56,20 +75,35 @@ public sealed class SignalHistoryViewModel : ObservableObject
     public void Begin()
     {
         RefreshNotice = "";
+        RefreshSummary = "";
         preview = false;
         samples.Clear();
         collecting = true;
         Rebuild();
+        RestartView();
     }
 
     public void BeginPreview()
     {
         RefreshNotice = "";
+        RefreshSummary = "Aguardando a primeira varredura";
         samples.Clear();
         preview = true;
         previewSequence = 0;
         collecting = false;
         Rebuild();
+        RestartView();
+    }
+
+    public void WaitForInterface()
+    {
+        RefreshNotice = "";
+        RefreshSummary = "";
+        samples.Clear();
+        preview = false;
+        collecting = false;
+        Rebuild();
+        RestartView();
     }
 
     public void AcceptPreview(WifiSnapshot snapshot, TimeSpan elapsed)
@@ -93,14 +127,27 @@ public sealed class SignalHistoryViewModel : ObservableObject
     public void Load(ProbeSession session)
     {
         RefreshNotice = session.ActiveWifiScanning ? "Esta coleta usou varredura Wi-Fi; o RTT pode ter sido afetado." : "";
+        RefreshSummary = session.ActiveWifiScanning ? "Coleta com varreduras Wi-Fi" : "Dados do arquivo";
         preview = false;
         samples.Clear();
         foreach (var sample in session.Samples) samples[sample.Sequence] = sample;
         collecting = false;
         Rebuild();
+        RestartView();
     }
 
-    public void End() { collecting = false; Notify(nameof(Heading)); Notify(nameof(StateLabel)); }
+    private void RestartView()
+    {
+        historyRevision++;
+        Notify(nameof(HistoryRevision));
+    }
+
+    public void End()
+    {
+        collecting = false;
+        Notify(nameof(Heading)); Notify(nameof(StateLabel)); Notify(nameof(IsCollecting));
+        Notify(nameof(HistoryTitle)); Notify(nameof(HistoryHint));
+    }
 
     private void Rebuild()
     {
@@ -118,10 +165,13 @@ public sealed class SignalHistoryViewModel : ObservableObject
         }
         points = history;
         Notify(nameof(Points)); Notify(nameof(Heading)); Notify(nameof(Value)); Notify(nameof(Source));
+        Notify(nameof(CurrentRssiDbm)); Notify(nameof(NumericValue));
         Notify(nameof(Position)); Notify(nameof(Availability)); Notify(nameof(Range)); Notify(nameof(LatestIssues));
         Notify(nameof(StateLabel)); Notify(nameof(Minimum)); Notify(nameof(Maximum)); Notify(nameof(ReadingsLabel)); Notify(nameof(HasIssues));
         Notify(nameof(ReadingStatus));
         Notify(nameof(TimeAxisLabel));
+        Notify(nameof(IsCollecting)); Notify(nameof(HistoryTitle)); Notify(nameof(HistoryHint));
+        Notify(nameof(ProcessedPositions)); Notify(nameof(ProgressValue)); Notify(nameof(ProgressLabel));
     }
 
     private string DescribeExtreme(bool minimum)

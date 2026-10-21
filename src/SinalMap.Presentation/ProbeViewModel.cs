@@ -38,6 +38,9 @@ public sealed class ProbeViewModel : ObservableObject
     private Task monitoringTask = Task.CompletedTask;
     private readonly IProbeClock clock;
     private readonly IWifiSignalRefresher? signalRefresher;
+    private WifiSnapshot? connectedNetwork;
+    private bool hasNetworkObservation;
+    private int connectedNetworkSequence = -1;
 
     public ProbeViewModel(IWifiMonitor wifi, IIcmpProbe icmp, IProbeClock clock, ISessionStore store,
         Func<string, CancellationToken, Task<ProbeSession>> read, IProbeDialogs dialogs,
@@ -55,7 +58,8 @@ public sealed class ProbeViewModel : ObservableObject
         RefreshCommand = new(RefreshAsync, ShowError, () => CanReplaceSession);
         MonitorCommand = new(() => { StartMonitoring(); return Task.CompletedTask; }, ShowError,
             () => CanReplaceSession && SelectedInterface?.State == WifiConnectionState.Connected);
-        StartCommand = new(StartAsync, ShowError, () => CanReplaceSession && SelectedInterface?.State == WifiConnectionState.Connected);
+        StartCommand = new(StartAsync, ShowError, () => CanReplaceSession && SelectedInterface?.State == WifiConnectionState.Connected &&
+            !string.IsNullOrWhiteSpace(TargetText) && !HasTargetError);
         OpenCommand = new(() => { var path = dialogs.ChooseSessionFile(); return path is null ? Task.CompletedTask : OpenAsync(path); }, ShowError, () => CanReplaceSession);
         ChooseFolderCommand = new(() => { OutputFolder = dialogs.ChooseOutputFolder(OutputFolder) ?? OutputFolder; return Task.CompletedTask; }, ShowError, () => CanEditFolder);
         CancelCommand = new(() => { Cancel(); return Task.CompletedTask; }, ShowError, () => Operation == ProbeOperation.Collecting && !closing);
@@ -90,19 +94,55 @@ public sealed class ProbeViewModel : ObservableObject
     public bool HasResult => Result is not null;
     public bool HasError => !string.IsNullOrWhiteSpace(Error);
     public bool HasSavedPath => !string.IsNullOrWhiteSpace(SavedPath);
+    public bool IsMonitoring => monitoringRequested && !IsBusy && !closing && SelectedInterface?.State == WifiConnectionState.Connected;
+    public string ConnectedNetworkName
+    {
+        get
+        {
+            if (SelectedInterface?.State != WifiConnectionState.Connected) return "Selecione uma interface conectada";
+            if (closing || !(IsMonitoring || Operation is ProbeOperation.Collecting or ProbeOperation.Cancelling)) return "Monitor pausado";
+            return connectedNetwork switch
+            {
+                null => hasNetworkObservation ? "Rede indisponível" : "Consultando rede…",
+                { State: WifiConnectionState.Connected, Ssid.Length: > 0 } snapshot => snapshot.Ssid,
+                { State: WifiConnectionState.Connected } => "SSID indisponível",
+                { State: WifiConnectionState.Disconnected } => "Wi-Fi desconectado",
+                _ => "Rede indisponível"
+            };
+        }
+    }
+    public bool ShowOperationNotice => IsBusy || HasError || HasPendingSave || !HasResult && SelectedInterface?.State != WifiConnectionState.Connected;
+    public string ActivityTitle => Operation switch
+    {
+        ProbeOperation.Listing => "Atualizando conexões", ProbeOperation.Collecting => "Coleta em andamento",
+        ProbeOperation.Cancelling => "Encerrando a coleta", ProbeOperation.Saving => "Salvando resultado", ProbeOperation.Opening => "Abrindo uma coleta",
+        _ => HasPendingSave ? "Salvamento pendente" : HasError ? "Confira os dados da operação" : HasResult ? "Resultado da coleta" :
+            IsMonitoring ? "Acompanhando seu Wi-Fi" : "Monitor de Wi-Fi"
+    };
     public string OperationLabel => Operation switch
     {
         ProbeOperation.Listing => "ATUALIZANDO", ProbeOperation.Collecting => "MEDINDO",
         ProbeOperation.Cancelling => "CANCELANDO", ProbeOperation.Saving => "SALVANDO", ProbeOperation.Opening => "ABRINDO",
-        _ => HasPendingSave ? "NÃO SALVO" : HasError ? "VERIFICAR" : HasResult ? "RESULTADO DISPONÍVEL" : "PRONTO PARA MEDIR"
+        _ => HasPendingSave ? "NÃO SALVO" : HasError ? "VERIFICAR" : HasResult ? "HISTÓRICO" : IsMonitoring ? "AO VIVO" : "PRONTO"
     };
+    public string ActivityDescription => IsBusy ? "Acompanhe o estado da operação abaixo" : HasPendingSave ? "Dados em memória aguardando salvamento" :
+        HasResult ? "Análise de arquivo local" : IsMonitoring ? "Sem ICMP · sem gravação" : "Selecione uma interface Wi-Fi conectada";
     public ProbeOperation Operation { get => operation; private set { Set(ref operation, value); RefreshState(); } }
     public bool IsBusy => Operation != ProbeOperation.Idle;
     public bool HasPendingSave => pendingSession is not null;
     public bool CanReplaceSession => !IsBusy && !HasPendingSave && !closing;
     public bool CanEditFolder => !IsBusy && !closing;
     public string Status { get => status; private set => Set(ref status, value); }
-    public string Error { get => error; private set { Set(ref error, value); Notify(nameof(HasError)); Notify(nameof(OperationLabel)); } }
+    public string Error
+    {
+        get => error;
+        private set
+        {
+            Set(ref error, value); Notify(nameof(HasError)); Notify(nameof(OperationLabel));
+            Notify(nameof(ShowOperationNotice)); Notify(nameof(ActivityTitle));
+            Notify(nameof(ActivityDescription));
+        }
+    }
     public string TargetText
     {
         get => targetText;
@@ -112,27 +152,47 @@ public sealed class ProbeViewModel : ObservableObject
             targetEdited = true;
             targetFromGateway = false;
             Notify(nameof(TargetHint));
+            Notify(nameof(TargetError)); Notify(nameof(HasTargetError));
+            StartCommand.NotifyCanExecuteChanged();
         }
     }
-    public string TargetHint => targetFromGateway ? "Gateway desta interface preenchido pelo Windows. Você pode editar." :
-        "Informe um IPv4 autorizado. O gateway não será escolhido entre vários candidatos.";
+    public string TargetHint => targetFromGateway ? "Gateway sugerido para esta conexão. Você pode alterar." :
+        "Use o gateway ou outro IPv4 autorizado.";
+    public string TargetError
+    {
+        get
+        {
+            if (!targetEdited) return "";
+            var text = TargetText.Trim();
+            if (!IPAddress.TryParse(text, out var address) || address.ToString() != text)
+                return "Informe um IPv4 completo, por exemplo 192.168.1.1.";
+            try { ProbeOptions.ValidateTarget(address); return ""; }
+            catch (ArgumentException) { return "Use um IPv4 unicast, sem loopback, multicast, broadcast ou endereço zero."; }
+        }
+    }
+    public bool HasTargetError => !string.IsNullOrEmpty(TargetError);
     public string OutputFolder { get => outputFolder; set => Set(ref outputFolder, value); }
-    public string SavedPath { get => savedPath; private set { Set(ref savedPath, value); Notify(nameof(HasSavedPath)); } }
+    public string SavedPath { get => savedPath; private set { Set(ref savedPath, value); Notify(nameof(HasSavedPath)); Notify(nameof(SavedFileName)); } }
+    public string SavedFileName => Path.GetFileName(SavedPath);
     public WifiInterfaceInfo? SelectedInterface
     {
         get => selectedInterface;
         set
         {
             if (!Set(ref selectedInterface, value)) return;
+            ClearConnectedNetwork();
             if (!targetEdited)
             {
                 targetFromGateway = value is { State: WifiConnectionState.Connected, Ipv4Gateway: not null };
                 Set(ref targetText, targetFromGateway ? value!.Ipv4Gateway! : "", nameof(TargetText));
                 Notify(nameof(TargetHint));
+                Notify(nameof(TargetError)); Notify(nameof(HasTargetError));
             }
             StartCommand.NotifyCanExecuteChanged();
             MonitorCommand.NotifyCanExecuteChanged();
             RestartMonitoring();
+            Notify(nameof(IsMonitoring)); Notify(nameof(ActivityTitle)); Notify(nameof(OperationLabel)); Notify(nameof(ShowOperationNotice));
+            Notify(nameof(ActivityDescription));
         }
     }
     public IReadOnlyList<WifiInterfaceInfo> Interfaces { get => interfaces; private set => Set(ref interfaces, value); }
@@ -233,26 +293,44 @@ public sealed class ProbeViewModel : ObservableObject
     private async Task ReadSignalAsync(ChannelReader<ProbeSample> reader)
     {
         // Retomar na thread gráfica; o produtor usa TryWrite e nunca espera a renderização.
-        await foreach (var sample in reader.ReadAllAsync()) Signal.Accept(sample);
+        await foreach (var sample in reader.ReadAllAsync())
+        {
+            // Uma consulta atrasada não pode substituir a identidade de uma posição mais recente.
+            if (sample.Disposition == SlotDisposition.Dispatched && sample.Sequence >= connectedNetworkSequence)
+            {
+                connectedNetworkSequence = sample.Sequence;
+                UpdateConnectedNetwork(sample.Wifi);
+            }
+            Signal.Accept(sample);
+        }
     }
 
     public void StartMonitoring()
     {
         if (!CanReplaceSession) return;
         monitoringRequested = true;
+        ClearConnectedNetwork();
         Result = null;
         SavedPath = "";
         SelectedTabIndex = 0;
-        Status = "Sinal da interface selecionada, sem ICMP e sem gravação. Inicie uma medição para salvar uma sessão de 60 s.";
+        Status = SelectedInterface?.State == WifiConnectionState.Connected ?
+            "Sinal da interface selecionada, sem ICMP e sem gravação. Inicie uma medição para salvar uma sessão de 60 s." :
+            Interfaces.Any(i => i.State == WifiConnectionState.Connected) ? "Selecione uma interface Wi-Fi conectada." :
+            "Nenhuma interface Wi-Fi conectada. Conecte pelo Windows e atualize a lista.";
         RestartMonitoring();
+        RefreshState();
     }
 
     private void RestartMonitoring()
     {
         if (!monitoringRequested || !CanReplaceSession) return;
         monitoringCancellation?.Cancel();
+        if (SelectedInterface is not { State: WifiConnectionState.Connected } selected)
+        {
+            Signal.WaitForInterface();
+            return;
+        }
         Signal.BeginPreview();
-        if (SelectedInterface is not { State: WifiConnectionState.Connected } selected) return;
         var cancellation = new CancellationTokenSource();
         monitoringCancellation = cancellation;
         monitoringTask = MonitorAfterAsync(monitoringTask, selected.Id, cancellation);
@@ -282,6 +360,7 @@ public sealed class ProbeViewModel : ObservableObject
                             new(IssueKind.AdapterError, "Wi-Fi", "Não foi possível consultar o adaptador."));
                     }
                     token.ThrowIfCancellationRequested();
+                    UpdateConnectedNetwork(snapshot);
                     Signal.AcceptPreview(snapshot, clock.ElapsedSince(began.MonotonicTicks));
                     var remaining = ProbeOptions.Interval - clock.ElapsedSince(started.MonotonicTicks);
                     await Task.Delay(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero, token);
@@ -305,13 +384,14 @@ public sealed class ProbeViewModel : ObservableObject
             {
                 token.ThrowIfCancellationRequested();
                 var started = clock.Capture();
-                Signal.DescribeRefresh("Atualizando o sinal por varredura Wi-Fi… Pode elevar a latência.");
+                Signal.DescribeRefresh("Atualizando o sinal por varredura Wi-Fi… Pode elevar a latência.", "Varredura em andamento");
                 var result = await signalRefresher.RefreshAsync(id, token);
                 scans?.Add(result);
                 token.ThrowIfCancellationRequested();
                 Signal.DescribeRefresh(result.Completed ?
                     $"Varredura confirmada às {result.CompletedAt.Utc.ToLocalTime():HH:mm:ss} · atualização a cada 5 s" :
-                    $"Varredura não confirmada: {result.Issue?.Kind} (código {result.Issue?.NativeCode?.ToString() ?? "n/a"}). O RSSI pode estar desatualizado.");
+                    $"Varredura não confirmada: {result.Issue?.Kind} (código {result.Issue?.NativeCode?.ToString() ?? "n/a"}). O RSSI pode estar desatualizado.",
+                    result.Completed ? $"Varredura às {result.CompletedAt.Utc.ToLocalTime():HH:mm:ss}" : "Atualização não confirmada");
                 var remaining = TimeSpan.FromSeconds(5) - clock.ElapsedSince(started.MonotonicTicks);
                 await Task.Delay(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero, token);
             }
@@ -320,7 +400,7 @@ public sealed class ProbeViewModel : ObservableObject
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             if (!token.IsCancellationRequested)
-                Signal.DescribeRefresh("Não foi possível atualizar por varredura. O RSSI pode estar desatualizado.");
+                Signal.DescribeRefresh("Não foi possível atualizar por varredura. O RSSI pode estar desatualizado.", "Falha ao atualizar o sinal");
         }
     }
 
@@ -352,6 +432,7 @@ public sealed class ProbeViewModel : ObservableObject
     {
         if (IsBusy || closing) return Task.CompletedTask;
         Operation = next;
+        ClearConnectedNetwork();
         monitoringCancellation?.Cancel();
         Error = "";
         activeOperation = CompleteAsync(action);
@@ -417,9 +498,27 @@ public sealed class ProbeViewModel : ObservableObject
     {
         Notify(nameof(IsBusy)); Notify(nameof(HasPendingSave)); Notify(nameof(CanReplaceSession)); Notify(nameof(CanEditFolder));
         Notify(nameof(OperationLabel));
+        Notify(nameof(IsMonitoring)); Notify(nameof(ActivityTitle)); Notify(nameof(ShowOperationNotice));
+        Notify(nameof(ActivityDescription));
+        Notify(nameof(ConnectedNetworkName));
         RefreshCommand?.NotifyCanExecuteChanged(); StartCommand?.NotifyCanExecuteChanged(); OpenCommand?.NotifyCanExecuteChanged();
         MonitorCommand?.NotifyCanExecuteChanged();
         ChooseFolderCommand?.NotifyCanExecuteChanged(); CancelCommand?.NotifyCanExecuteChanged(); RetrySaveCommand?.NotifyCanExecuteChanged();
         DiscardCommand?.NotifyCanExecuteChanged();
+    }
+
+    private void ClearConnectedNetwork()
+    {
+        connectedNetworkSequence = -1;
+        connectedNetwork = null;
+        hasNetworkObservation = false;
+        Notify(nameof(ConnectedNetworkName));
+    }
+
+    private void UpdateConnectedNetwork(WifiSnapshot? snapshot)
+    {
+        hasNetworkObservation = true;
+        connectedNetwork = snapshot?.InterfaceId == SelectedInterface?.Id ? snapshot : null;
+        Notify(nameof(ConnectedNetworkName));
     }
 }

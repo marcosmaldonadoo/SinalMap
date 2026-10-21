@@ -87,21 +87,74 @@ public sealed class ProbeViewModelTests
     }
 
     [Fact]
+    public async Task Monitoring_without_a_connected_interface_stays_waiting_without_querying_or_saving()
+    {
+        var h = new Harness(presetTarget: false);
+        h.Wifi.Items = [];
+        await h.Model.RefreshAsync();
+        h.Model.StartMonitoring();
+        Assert.False(h.Model.IsMonitoring);
+        Assert.True(h.Model.ShowOperationNotice);
+        Assert.Equal("AGUARDANDO", h.Model.Signal.StateLabel);
+        Assert.Empty(h.Model.Signal.Points);
+        Assert.Equal(0, h.Wifi.Calls);
+        Assert.Empty(h.Icmp.Invocations);
+        Assert.Empty(h.Store.Sessions);
+        Assert.True(await h.Model.RequestCloseAsync());
+    }
+
+    [Fact]
     public async Task Monitoring_shows_RSSI_without_a_target_without_ICMP_and_without_saving()
     {
         var h = new Harness(presetTarget: false);
         var observed = Signal();
-        h.Wifi.OnRead = _ => Task.FromResult(TestData.Wifi(new ManualClock()) with { RssiSource = "WlanQueryInterface:rssi", RssiDbm = -61 });
+        h.Wifi.OnRead = _ => Task.FromResult(TestData.Wifi(new ManualClock()) with { Ssid = "Rede de teste", RssiSource = "WlanQueryInterface:rssi", RssiDbm = -61 });
         h.Model.Signal.PropertyChanged += (_, _) => { if (h.Model.Signal.Value == "-61 dBm") observed.TrySetResult(); };
         await h.Model.RefreshAsync();
         h.Model.StartMonitoring();
         await observed.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal("MONITORANDO", h.Model.Signal.StateLabel);
+        Assert.Equal("AO VIVO", h.Model.OperationLabel);
+        Assert.Equal("Rede de teste", h.Model.ConnectedNetworkName);
+        Assert.False(h.Model.ShowOperationNotice);
         Assert.Empty(h.Model.TargetText);
         Assert.Empty(h.Icmp.Invocations);
         Assert.Empty(h.Store.Sessions);
         Assert.Null(h.Model.Result);
         Assert.False(h.Model.IsBusy);
+        Assert.True(await h.Model.RequestCloseAsync());
+    }
+
+    [Theory]
+    [InlineData(WifiConnectionState.Connected, "Outra rede de teste", "Outra rede de teste")]
+    [InlineData(WifiConnectionState.Connected, null, "SSID indisponível")]
+    [InlineData(WifiConnectionState.Connected, "", "SSID indisponível")]
+    [InlineData(WifiConnectionState.Disconnected, "Nome antigo", "Wi-Fi desconectado")]
+    [InlineData(WifiConnectionState.Unavailable, "Nome antigo", "Rede indisponível")]
+    public async Task Connected_network_tracks_live_changes_without_reusing_an_old_name(
+        WifiConnectionState state, string? ssid, string expected)
+    {
+        var h = new Harness(presetTarget: false);
+        var observed = Signal();
+        var calls = 0;
+        h.Wifi.OnRead = _ => Task.FromResult(TestData.Wifi(new ManualClock()) with
+        {
+            State = calls++ == 0 ? WifiConnectionState.Connected : state,
+            Ssid = calls == 1 ? "Rede inicial de teste" : ssid,
+            SsidHex = "FFFE"
+        });
+        h.Model.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ProbeViewModel.ConnectedNetworkName) && h.Model.ConnectedNetworkName == expected)
+                observed.TrySetResult();
+        };
+        await h.Model.RefreshAsync();
+        h.Model.StartMonitoring();
+        Assert.Equal("Rede inicial de teste", h.Model.ConnectedNetworkName);
+        await observed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(expected, h.Model.ConnectedNetworkName);
+        Assert.Empty(h.Icmp.Invocations);
+        Assert.Empty(h.Store.Sessions);
         Assert.True(await h.Model.RequestCloseAsync());
     }
 
@@ -146,7 +199,7 @@ public sealed class ProbeViewModelTests
         h.Wifi.OnRead = async token =>
         {
             if (++calls == 1) return await first.Task;
-            return TestData.Wifi(new ManualClock(), other.Id) with { RssiSource = "WlanQueryInterface:rssi", RssiDbm = -70 };
+            return TestData.Wifi(new ManualClock(), other.Id) with { Ssid = "Segunda rede de teste", RssiSource = "WlanQueryInterface:rssi", RssiDbm = -70 };
         };
         h.Model.Signal.PropertyChanged += (_, _) =>
         {
@@ -156,11 +209,13 @@ public sealed class ProbeViewModelTests
         await h.Model.RefreshAsync();
         h.Model.StartMonitoring();
         h.Model.SelectedInterface = other;
+        Assert.Equal("Consultando rede…", h.Model.ConnectedNetworkName);
         Assert.Equal(1, calls);
         first.SetResult(TestData.Wifi(new ManualClock()) with { RssiSource = "WlanQueryInterface:rssi", RssiDbm = -30 });
         await second.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.False(leaked);
         Assert.Equal("-70 dBm", h.Model.Signal.Value);
+        Assert.Equal("Segunda rede de teste", h.Model.ConnectedNetworkName);
         Assert.Single(h.Model.Signal.Points);
         Assert.True(await h.Model.RequestCloseAsync());
         Assert.Empty(h.Icmp.Invocations);
@@ -175,6 +230,8 @@ public sealed class ProbeViewModelTests
         await h.Model.OpenAsync("local.json");
         Assert.Equal("HISTÓRICO", h.Model.Signal.StateLabel);
         Assert.NotNull(h.Model.Result);
+        Assert.Equal("HISTÓRICO", h.Model.OperationLabel);
+        Assert.Equal("Monitor pausado", h.Model.ConnectedNetworkName);
         await h.Model.MonitorCommand.ExecuteAsync();
         Assert.Equal("MONITORANDO", h.Model.Signal.StateLabel);
         Assert.Null(h.Model.Result);
@@ -210,7 +267,7 @@ public sealed class ProbeViewModelTests
         h.Wifi.OnRead = async token =>
         {
             if (Interlocked.Increment(ref count) == 1)
-                return TestData.Wifi(new ManualClock()) with { RssiDbm = -60, RssiSource = "WlanQueryInterface:rssi" };
+                return TestData.Wifi(new ManualClock()) with { Ssid = "Rede de coleta simulada", RssiDbm = -60, RssiSource = "WlanQueryInterface:rssi" };
             await Task.Delay(Timeout.Infinite, token);
             return null!;
         };
@@ -225,11 +282,13 @@ public sealed class ProbeViewModelTests
         Assert.True(h.Model.IsBusy);
         Assert.Null(h.Model.Result);
         Assert.Equal("-60 dBm", h.Model.Signal.Value);
+        Assert.Equal("Rede de coleta simulada", h.Model.ConnectedNetworkName);
         h.Model.Cancel();
         await collection;
         Assert.False(h.Model.IsBusy);
         Assert.True(Assert.Single(h.Store.Sessions).Cancelled);
         Assert.Equal("Indisponível", h.Model.Signal.Value);
+        Assert.Equal("Monitor pausado", h.Model.ConnectedNetworkName);
     }
 
     [Theory]
@@ -244,11 +303,30 @@ public sealed class ProbeViewModelTests
         var h = new Harness();
         await h.Model.RefreshAsync();
         h.Model.TargetText = target;
+        Assert.True(h.Model.HasTargetError);
+        Assert.False(h.Model.StartCommand.CanExecute(null));
         await h.Model.StartAsync();
         Assert.Equal(0, h.Wifi.Calls);
         Assert.Empty(h.Store.Sessions);
         Assert.NotEmpty(h.Model.Error);
         Assert.False(h.Model.IsBusy);
+    }
+
+    [Fact]
+    public async Task Correcting_the_target_clears_inline_validation_and_enables_collection_without_sending_packets()
+    {
+        var h = new Harness(presetTarget: false);
+        await h.Model.RefreshAsync();
+        Assert.False(h.Model.HasTargetError);
+        Assert.False(h.Model.StartCommand.CanExecute(null));
+        h.Model.TargetText = "127.0.0.1";
+        Assert.True(h.Model.HasTargetError);
+        Assert.False(h.Model.StartCommand.CanExecute(null));
+        h.Model.TargetText = "192.0.2.1";
+        Assert.False(h.Model.HasTargetError);
+        Assert.True(h.Model.StartCommand.CanExecute(null));
+        Assert.Empty(h.Icmp.Invocations);
+        Assert.Empty(h.Store.Sessions);
     }
 
     [Fact]
@@ -258,6 +336,7 @@ public sealed class ProbeViewModelTests
         h.Wifi.Items = [new(TestData.InterfaceId, "one", WifiConnectionState.Connected), new(Guid.NewGuid(), "two", WifiConnectionState.Connected)];
         await h.Model.RefreshAsync();
         Assert.Null(h.Model.SelectedInterface);
+        Assert.True(h.Model.ShowOperationNotice);
         Assert.False(h.Model.StartCommand.CanExecute(null));
         await h.Model.StartAsync();
         Assert.Equal(0, h.Wifi.Calls);

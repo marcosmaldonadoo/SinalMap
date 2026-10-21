@@ -6,7 +6,7 @@
 
 A logo apresenta a identidade visual usada na janela técnica.
 
-**SinalMap 1.0.0** — aplicativo open source de monitoramento e coleta Wi-Fi para Windows. Inclui a janela WPF e o console, com Native Wi-Fi API, ICMP, JSON local e análise descritiva.
+**SinalMap 1.1.0** — aplicativo open source de monitoramento e coleta Wi-Fi para Windows. Inclui a janela WPF e o console, com Native Wi-Fi API, ICMP, JSON local e análise descritiva.
 
 A documentação do projeto é mantida em **português brasileiro**. A versão em inglês será preparada em uma etapa futura.
 
@@ -14,9 +14,9 @@ O objetivo é inspecionar os dados fornecidos pelo Windows e pelos drivers sem i
 
 ## Baixar e abrir no Windows
 
-Baixe **SinalMap-v1.0.0-win-x64.zip** na [release v1.0.0](https://github.com/marcosmaldonadoo/SinalMap/releases/tag/v1.0.0), extraia toda a pasta e abra **SinalMap.Desktop.Wpf.exe**. O pacote inclui o .NET necessário; não exige SDK ou instalação separada do runtime. Preserve os arquivos ao lado do executável.
+Baixe **SinalMap-v1.1.0-win-x64.zip** na [release v1.1.0](https://github.com/marcosmaldonadoo/SinalMap/releases/tag/v1.1.0), extraia toda a pasta e abra **SinalMap.Desktop.Wpf.exe**. O pacote inclui o .NET necessário; não exige SDK ou instalação separada do runtime. Preserve os arquivos ao lado do executável.
 
-O pacote **SinalMap-Console-v1.0.0-win-x64.zip** contém a ferramenta de linha de comando. Os pacotes são portáteis para Windows x64, sem instalador ou assinatura digital. Os [passos de uso](docs/como-executar.md), as [notas da versão](docs/releases/v1.0.0.md) e os [limites da validação](docs/validacao-wpf.md) detalham o escopo.
+O pacote **SinalMap-Console-v1.1.0-win-x64.zip** contém a ferramenta de linha de comando. Os pacotes são portáteis para Windows x64, sem instalador ou assinatura digital. Os [passos de uso](docs/como-executar.md), as [notas da versão](docs/releases/v1.1.0.md) e os [limites da validação](docs/validacao-wpf.md) detalham o escopo.
 
 ## Pré-requisitos
 
@@ -47,29 +47,41 @@ Para preparar os dois pacotes portáteis e os hashes SHA-256 no Windows:
 ./scripts/Publish-Release.ps1
 ```
 
-Os ZIPs ficam em `artifacts/releases/1.0.0/`, fora do controle de versão. O script recusa sobrescrever pacotes existentes; use `-ArtifactRoot` para gerar em outra pasta.
+Os ZIPs ficam em `artifacts/releases/1.1.0/`, fora do controle de versão. O script recusa sobrescrever pacotes existentes; use `-ArtifactRoot` para gerar em outra pasta.
 
 ## Abrir a janela técnica no Windows
+
+Esta seção descreve a interface distribuída na versão 1.1.0.
 
 ```powershell
 dotnet run --project src/SinalMap.Desktop.Wpf -c Release
 ```
 
-Ao abrir a janela, a aba **Sinal** acompanha o RSSI da interface conectada selecionada, aproximadamente uma vez por segundo, sem iniciar teste, enviar ICMP ou gravar arquivo. Havendo mais de uma interface conectada, selecione uma. O gráfico mantém até 60 leituras da janela recente de 60 s; o horário indica a resposta da consulta do Windows, não uma garantia de nova recepção pelo rádio.
+Ao abrir a janela, a aba **Visão geral** acompanha o RSSI da interface conectada selecionada, aproximadamente uma vez por segundo, sem iniciar teste, enviar ICMP ou gravar arquivo. Havendo mais de uma interface conectada, selecione uma. O gráfico mantém até 60 leituras da janela recente de 60 s; o horário indica a resposta da consulta do Windows, não uma garantia de nova recepção pelo rádio.
+
+O campo **Rede conectada · SSID**, abaixo do seletor de interface, mostra o nome retornado pelo Windows nas mesmas consultas do monitor e da coleta. Trocas de rede e desconexões atualizam esse campo; quando o Windows não fornece um nome textual, ele fica indisponível. Ao analisar um JSON, o campo indica **Monitor pausado**, sem apresentar a rede do arquivo como conexão atual.
 
 A janela solicita uma **varredura Wi-Fi a cada 5 segundos**, também durante o teste de 60 s, e prioriza o RSSI da consulta em tempo real para conexões de enlace único não MLO. Isso corrige o caso observado neste adaptador, em que somente consultar repetidamente mantinha o RSSI estático. Varreduras podem aumentar a latência; a tela, o resumo e o JSON registram essa condição. A confirmação de conclusão é acompanhada separadamente do pedido. Consulte o [diagnóstico e os limites da correção](docs/correcao-rssi-estatico.md).
 
-Para salvar uma medição, confira o destino autorizado e a pasta e clique em **Iniciar medição · 60 s**. O gateway IPv4 é preenchido apenas quando há um único candidato válido da interface selecionada. Sem gateway ou com vários candidatos, o campo continua vazio; um destino editado pelo usuário é preservado ao atualizar ou trocar a interface. A pasta padrão é `Documentos/SinalMap/results`, independente do diretório de onde o aplicativo foi aberto. A coleta dura 60 segundos; resumo, tabela completa, contexto e ocorrências ficam disponíveis ao terminar.
+Para salvar uma medição, confira o destino autorizado e a pasta e clique em **Coletar por 60 segundos**. O gateway IPv4 é preenchido apenas quando há um único candidato válido da interface selecionada. Sem gateway ou com vários candidatos, o campo continua vazio; um destino editado pelo usuário é preservado ao atualizar ou trocar a interface. Erros de IPv4 aparecem junto ao campo e impedem o início pelo botão. Expanda **Pasta de resultados** para alterar o caminho, cujo padrão é `Documentos/SinalMap/results`, independente do diretório de onde o aplicativo foi aberto. A coleta dura 60 segundos; o progresso conta posições processadas, e as abas de resumo, tabela, contexto e ocorrências aparecem quando há um resultado.
 
 O valor de sinal vem do adaptador, por exemplo `−60 dBm`; ele não é fixado nem convertido de porcentagem. Leituras ausentes ficam indisponíveis e interrompem a linha. Ao abrir um JSON, o mesmo gráfico mostra o histórico salvo. Consulte os [critérios do sinal ao vivo](docs/sinal-ao-vivo.md).
 
-O monitor pausa antes de uma coleta ou da abertura de arquivo. O resultado fica em **HISTÓRICO** ao terminar; use **Sinal ao vivo** para voltar ao monitoramento sem teste. Durante a coleta, o RSSI é exibido assim que a consulta Wi-Fi termina, sem aguardar a resposta ICMP; somente a amostra completa é persistida.
+O monitor pausa antes de uma coleta ou da abertura de arquivo. O resultado fica em **HISTÓRICO** ao terminar; use **Ao vivo** (`Ctrl+L`) para voltar ao monitoramento sem teste. Durante a coleta, o RSSI é exibido assim que a consulta Wi-Fi termina, sem aguardar a resposta ICMP; somente a amostra completa é persistida.
 
-A interface destaca a última leitura, os extremos registrados e a quantidade de posições com RSSI. Passe o mouse sobre o gráfico para consultar o tempo e o valor de cada posição. O indicador distingue coleta ao vivo de histórico; os detalhes da medição podem ser expandidos. Os comandos de iniciar e cancelar permanecem acessíveis enquanto a configuração e o conteúdo da aba rolam em janelas menores.
+A interface destaca a última leitura, os extremos registrados e a quantidade de posições com RSSI. A régua de dBm acompanha o mesmo valor real do visor; quando falta RSSI, o visor mostra um traço e a régua fica sem marcador. Ela não converte qualidade percentual nem atribui uma classificação de cobertura. Passe o mouse sobre o gráfico para consultar o tempo e o valor de cada posição. Com o gráfico em foco, use `←`/`→`, `Home` e `End`; `Esc` encerra a seleção por teclado. O indicador distingue coleta ao vivo de histórico; **Detalhes e diagnóstico** reúne fontes, varreduras e ocorrências. Uma nova coleta ou um novo histórico volta à leitura principal; as atualizações por amostra preservam a posição de inspeção. Os comandos de iniciar e cancelar permanecem acessíveis enquanto a configuração e o conteúdo da aba rolam em janelas menores. A tabela mantém posição, RSSI e RTT fixos durante a rolagem horizontal e permite copiar a seleção com `Ctrl+C`.
 
-Cancelar ou fechar durante a coleta solicita cancelamento e aguarda o salvamento parcial. Se a gravação falhar, a janela mantém a sessão em memória, bloqueia sua substituição e permite escolher outra pasta para tentar novamente. Descartar uma sessão não salva exige confirmação explícita. Encerramento forçado ainda pode perder esses dados.
+Cancelar ou fechar durante a coleta solicita cancelamento e aguarda o salvamento parcial. Se a gravação falhar, a janela mantém a sessão em memória e bloqueia sua substituição. O aviso oferece **Escolher outra pasta…** e **Tentar salvar novamente** diretamente. Descartar uma sessão não salva exige confirmação explícita. Encerramento forçado ainda pode perder esses dados.
 
 Use **Abrir coleta** (`Ctrl+O`) para analisar um arquivo existente sem iniciar ICMP; `F5` atualiza as interfaces. O [roteiro WPF](docs/validacao-wpf.md) informa o estado das verificações e as limitações do piloto.
+
+Se a janela ficar branca por uma falha de aceleração gráfica, a revisão atual oferece uma alternativa somente para esse processo:
+
+```powershell
+dotnet run --project src/SinalMap.Desktop.Wpf -c Release -- --software-rendering
+```
+
+Essa opção usa renderização por software e não modifica configurações do Windows.
 
 ## Executar no Windows
 

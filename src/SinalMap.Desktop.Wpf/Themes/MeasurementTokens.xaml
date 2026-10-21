@@ -1,0 +1,47 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+    <SolidColorBrush x:Key="Canvas" Color="#F3F6F8" />
+    <SolidColorBrush x:Key="Surface" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="SurfaceSubtle" Color="#F6F8FA" />
+    <SolidColorBrush x:Key="Ink" Color="#17313E" />
+    <SolidColorBrush x:Key="Muted" Color="#526B79" />
+    <SolidColorBrush x:Key="Metadata" Color="#5B7382" />
+    <SolidColorBrush x:Key="DisabledInk" Color="#82939D" />
+    <SolidColorBrush x:Key="Accent" Color="#087C8A" />
+    <SolidColorBrush x:Key="AccentTint" Color="#E6F3F5" />
+    <SolidColorBrush x:Key="Line" Color="#DEE6EB" />
+    <SolidColorBrush x:Key="LineSubtle" Color="#EBF0F3" />
+    <SolidColorBrush x:Key="ControlSurface" Color="#EEF3F6" />
+    <SolidColorBrush x:Key="ControlBorder" Color="#CFDBE2" />
+    <SolidColorBrush x:Key="ControlHover" Color="#9BB5C1" />
+    <SolidColorBrush x:Key="ControlSelection" Color="#BFE4EA" />
+    <SolidColorBrush x:Key="ControlFocus" Color="#008DA2" />
+    <SolidColorBrush x:Key="ErrorInk" Color="#AD3C46" />
+    <SolidColorBrush x:Key="ErrorBorder" Color="#C75661" />
+    <SolidColorBrush x:Key="WarningInk" Color="#80550C" />
+    <SolidColorBrush x:Key="WarningSurface" Color="#FFF7E8" />
+    <SolidColorBrush x:Key="WarningBorder" Color="#EDDDC0" />
+    <SolidColorBrush x:Key="ScopeSurface" Color="#112630" />
+    <SolidColorBrush x:Key="ScopeGrid" Color="#2A414C" />
+    <SolidColorBrush x:Key="ScopeText" Color="#B4C8D2" />
+    <SolidColorBrush x:Key="ScopeTrace" Color="#31CEDD" />
+    <SolidColorBrush x:Key="ScopeArea" Color="#1431CEDD" />
+    <SolidColorBrush x:Key="ScopeHalo" Color="#3031CEDD" />
+    <SolidColorBrush x:Key="ScopeGuide" Color="#89A7B7" />
+    <SolidColorBrush x:Key="ScopeSelection" Color="#21404F" />
+    <SolidColorBrush x:Key="ScopeSelectionBorder" Color="#527786" />
+    <SolidColorBrush x:Key="ScopeOnSelection" Color="#F4FAFC" />
+    <FontFamily x:Key="InterfaceFont">Segoe UI</FontFamily>
+    <FontFamily x:Key="MeasurementFont">Consolas</FontFamily>
+    <system:Double x:Key="TextMetadata">11</system:Double>
+    <system:Double x:Key="TextSmall">12</system:Double>
+    <system:Double x:Key="TextBody">14</system:Double>
+    <system:Double x:Key="TextSection">16</system:Double>
+    <system:Double x:Key="TextHeading">20</system:Double>
+    <system:Double x:Key="TextSummary">24</system:Double>
+    <system:Double x:Key="TextReadout">64</system:Double>
+    <system:Double x:Key="ControlHeight">44</system:Double>
+    <CornerRadius x:Key="ControlRadius">8</CornerRadius>
+    <CornerRadius x:Key="PanelRadius">12</CornerRadius>
+</ResourceDictionary>

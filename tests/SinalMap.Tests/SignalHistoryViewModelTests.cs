@@ -10,18 +10,44 @@ namespace SinalMap.Tests;
 public sealed class SignalHistoryViewModelTests
 {
     [Fact]
+    public async Task Collection_progress_counts_processed_positions_without_treating_future_cancellation_as_completion()
+    {
+        var session = await SessionComparerTests.CreateSession(-60);
+        var model = new SignalHistoryViewModel();
+        model.Begin();
+        var revision = model.HistoryRevision;
+        model.Accept(session.Samples[0]);
+        model.Accept(session.Samples[1] with { Disposition = SlotDisposition.SkippedLate, Wifi = null });
+        model.Accept(session.Samples[2] with { Disposition = SlotDisposition.CancelledBeforeDispatch, Wifi = null });
+        Assert.True(model.IsCollecting);
+        Assert.Equal(2, model.ProcessedPositions);
+        Assert.Equal(2 * 100d / 60, model.ProgressValue);
+        Assert.Equal("2 de 60 posições processadas", model.ProgressLabel);
+        model.End();
+        Assert.False(model.IsCollecting);
+        model.BeginPreview();
+        Assert.False(model.IsCollecting);
+        Assert.Equal(0, model.ProcessedPositions);
+        Assert.True(model.HistoryRevision > revision);
+    }
+
+    [Fact]
     public void Preview_has_a_bounded_recent_window_and_missing_readings_clear_the_value()
     {
         var clock = new ManualClock();
         var model = new SignalHistoryViewModel();
         model.BeginPreview();
+        var revision = model.HistoryRevision;
         for (var i = 0; i < 100; i++)
             model.AcceptPreview(TestData.Wifi(clock) with { RssiSource = "WlanQueryInterface:rssi" }, TimeSpan.FromSeconds(i * 2));
         Assert.Equal(30, model.Points.Count);
+        Assert.Equal(revision, model.HistoryRevision);
         Assert.All(model.Points, p => Assert.InRange(p.Seconds, 0, 59));
         model.AcceptPreview(WifiSnapshot.Unavailable(TestData.InterfaceId, clock.Capture(), clock.Capture(),
             new(IssueKind.Busy, "Wi-Fi", "private")), TimeSpan.FromSeconds(200));
         Assert.Equal("Indisponível", model.Value);
+        Assert.Null(model.CurrentRssiDbm);
+        Assert.Equal("—", model.NumericValue);
         Assert.Null(model.Points.Last().RssiDbm);
         Assert.Contains("andamento", model.ReadingStatus);
         Assert.DoesNotContain("private", model.ReadingStatus);
@@ -62,6 +88,8 @@ public sealed class SignalHistoryViewModelTests
         model.Accept(session.Samples[1] with { Wifi = session.Samples[1].Wifi! with { RssiDbm = -55 } });
         model.Accept(session.Samples[0]);
         Assert.Equal("-55 dBm", model.Value);
+        Assert.Equal(-55, model.CurrentRssiDbm);
+        Assert.Equal("-55", model.NumericValue);
         Assert.Equal(new[] { -60, -55 }, model.Points.Select(p => p.RssiDbm!.Value));
         Assert.False(model.Points[1].BreakBefore);
         Assert.Equal("Sinal atual", model.Heading);
@@ -78,10 +106,14 @@ public sealed class SignalHistoryViewModelTests
         model.Accept(session.Samples[0]);
         model.Accept(session.Samples[1] with { Wifi = session.Samples[1].Wifi! with { RssiDbm = null } });
         Assert.Equal("Indisponível", model.Value);
+        Assert.Null(model.CurrentRssiDbm);
+        Assert.Equal("—", model.NumericValue);
         Assert.Null(model.Points[1].RssiDbm);
         model.Accept(session.Samples[2]);
         Assert.True(model.Points[2].BreakBefore);
         Assert.Equal("-60 dBm", model.Value);
+        Assert.Equal(-60, model.CurrentRssiDbm);
+        Assert.Equal("-60", model.NumericValue);
     }
 
     [Theory]

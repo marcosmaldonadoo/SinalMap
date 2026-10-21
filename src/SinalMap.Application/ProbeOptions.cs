@@ -16,9 +16,15 @@ public sealed record ProbeOptions(IPAddress Target, Guid InterfaceId, string? In
         ArgumentNullException.ThrowIfNull(Target);
         if (InterfaceId == Guid.Empty)
             throw new ArgumentException("A Wi-Fi interface GUID is required.", nameof(InterfaceId));
-        if (Target.AddressFamily != AddressFamily.InterNetwork ||
-            IPAddress.IsLoopback(Target) || Target.Equals(IPAddress.Any) ||
-            Target.Equals(IPAddress.Broadcast) || Target.GetAddressBytes()[0] is 0 or >= 224)
+        ValidateTarget(Target);
+    }
+
+    public static void ValidateTarget(IPAddress target)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        if (target.AddressFamily != AddressFamily.InterNetwork ||
+            IPAddress.IsLoopback(target) || target.Equals(IPAddress.Any) ||
+            target.Equals(IPAddress.Broadcast) || target.GetAddressBytes()[0] is 0 or >= 224)
             throw new ArgumentException("Phase 0 requires a unicast IPv4 target, excluding loopback and 0.0.0.0.", nameof(Target));
     }
 }

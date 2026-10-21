@@ -75,6 +75,45 @@ No mesmo ambiente Windows x64/.NET 10, compilação Release sem avisos/erros e *
 
 Os pacotes portáteis Windows x64 foram publicados localmente com .NET 10.0.13 incluído, extraídos e inspecionados. O executável WPF extraído abriu e exibiu leituras/varreduras; o console executou `--help` com código 0. A versão de arquivo é 1.0.0.0 e a versão de produto é 1.0.0. O conteúdo desktop do pacote final é idêntico ao que foi inspecionado. Os ZIPs não incluem coletas, código-fonte ou PDBs; seus hashes SHA-256 acompanham a release. A compilação final da solução teve 0 avisos/erros e os 218 testes passaram no Windows local.
 
+## Revisão de UI/UX de 2026-10-21
+
+A configuração foi compactada, com destino validado junto ao campo e pasta de resultados expansível. O cabeçalho diferencia acompanhamento ao vivo, operação e histórico. A visão geral destaca RSSI e extremos; as demais abas aparecem quando há resultado. O progresso da coleta representa posições processadas, incluindo descarte por atraso e excluindo posições futuras canceladas, sem estimar progresso temporal. Os comandos de coleta e salvamento parcial permanecem fora da área rolável.
+
+O gráfico usa divisões regulares na escala de dBm, preenchimento separado por segmento e seleção por mouse ou teclado (`←`, `→`, `Home`, `End`, `Esc`). Ausências, mudança de contexto e recuo de tempo continuam interrompendo a linha e o preenchimento. Os detalhes técnicos e as mensagens de varredura ficam disponíveis em uma seção expansível. A tabela mantém posição, RSSI e RTT fixos na rolagem horizontal; as tabelas permitem copiar a seleção com os cabeçalhos.
+
+Verificação no Windows x64, SDK .NET 10.0.402 e runtime 10.0.13:
+
+- Compilação Release da solução sem avisos ou erros e testes simulados: **221 aprovados**, sem falhas ou ignorados. Os casos novos verificam progresso por posições, correção do destino sem enviar pacotes e espera sem leituras quando não há interface conectada; os testes existentes passaram a conferir os estados ao vivo/histórico e o bloqueio do comando com destino inválido. A validação de endereço continua usando os mesmos critérios compartilhados pelo coletor.
+- Inspeção na janela padrão: acompanhamento passivo, seletor de adaptador, mensagem junto ao IPv4 inválido e abertura por `Ctrl+O`/diálogo nativo. Um JSON físico anterior foi carregado com 60 posições, RSSI entre −69 e −24 dBm, preservando a interrupção na mudança de contexto. Mouse, `Home`, `→` e `End` exibiram posições e valores correspondentes ao arquivo.
+- Renderização local dos componentes WPF com área de 1280 × 800 e 1000 × 640, usando o mesmo JSON anterior, nome genérico de adaptador e portas de aquisição/gravação bloqueadas. Foram inspecionados visão geral, resumo, amostras e detalhes expandidos, incluindo rolagem até o final. Essa verificação de layout não equivale a redimensionar a janela nativa ou comprovar o rádio.
+- A captura da janela ficou branca com aceleração gráfica tanto na revisão quanto no executável publicado v1.0.0. A inspeção visual usou renderização por software no processo. A opção `--software-rendering` permite repetir essa alternativa sem alterar o Windows; o modo padrão continua gerenciado pelo WPF. A causa da falha de aceleração não foi determinada.
+
+Não foi realizada nova coleta física de 60 segundos nesta revisão. A inspeção nativa do diálogo de pasta, o redimensionamento e o percurso completo por teclado continuam pendentes; a automação não conseguiu retomar a janela minimizada (`window is minimized`). A renderização final dos componentes não registrou erros de binding. A compilação final usou saída isolada em `artifacts/ui-ux-final` porque a janela aberta mantinha os binários anteriores em uso. Os arquivos e imagens da verificação ficaram locais, fora do controle de versão. O formato JSON, as consultas Wi-Fi, o ICMP e a cadência de varredura não mudaram. Os pacotes já publicados da v1.0.0 permanecem os mesmos.
+
+## Padronização complementar da interface em 2026-10-21
+
+A janela passou a usar uma paleta compartilhada em `Themes/MeasurementTokens.xaml`, com foco ciano, visor grafite e campos levemente rebaixados. A coluna de configuração acompanha o fundo da janela. Controles têm altura mínima de 44 unidades lógicas; textos numéricos usam Consolas, com números tabulares e alinhamento nas tabelas. O cabeçalho diferencia operação, monitoramento e análise local, inclusive na cor do indicador, acompanhada do estado por escrito.
+
+A leitura principal separa o número da unidade dBm e inclui uma régua com marcador do mesmo RSSI válido. A escala se amplia quando necessário; não há conversão de qualidade, categorias de cobertura ou reaproveitamento de um marcador anterior quando falta RSSI. Os extremos ficam em uma linha secundária. O gráfico mantém as lacunas e usa as mesmas cores do visor. A troca de histórico reposiciona a rolagem no topo; amostras recebidas preservam a inspeção. O aviso de salvamento pendente oferece escolha de pasta e nova tentativa diretamente, sem exibir o comando de nova coleta nessa condição.
+
+No mesmo ambiente Windows x64/.NET 10: solução compilada em Release sem avisos ou erros e **221 testes aprovados**, sem falhas ou ignorados. As verificações existentes passaram a conferir também a ausência de valor numérico/marcador, a projeção do RSSI exato e a revisão de histórico estável durante atualizações. A saída final desta revisão fica em `artifacts/interface-design-final`.
+
+Foram renderizados os componentes WPF por software com áreas de 1280 × 800 e 1000 × 640. A inspeção cobriu visão geral, tabela, resumo, detalhes com rolagem, falta de RSSI, destino inválido, progresso e falha de salvamento. Os estados de erro, ausência e operação foram reconstruídos somente no verificador local, com portas de rede/gravação bloqueadas e dados de uma coleta anterior; não representam novas medições ou falhas físicas de disco. Nenhum erro de binding foi registrado. Os limites da inspeção nativa descritos acima continuam vigentes.
+
+## Exibição do SSID em 2026-10-21
+
+A coluna de configuração passou a mostrar **Rede conectada · SSID**, usando o nome textual das consultas Wi-Fi já existentes durante o monitor e a coleta. Não há consulta adicional nem mudança da cadência, das permissões ou do JSON. Troca de interface limpa a observação anterior; respostas canceladas ou de outra interface não fornecem o nome. Leituras de posições anteriores não substituem a identidade de uma posição mais recente da coleta. Desconexão e indisponibilidade retiram o nome anterior; SSID ausente, vazio ou sem representação textual não é reconstruído a partir dos bytes. Ao analisar um arquivo, o campo informa que o monitor está pausado.
+
+Verificação no Windows x64, SDK .NET 10.0.402: compilação Release sem avisos/erros e **226 testes simulados aprovados**, sem falhas ou ignorados. A cobertura inclui nome durante monitor/coleta, mudança de SSID, ausência, desconexão, troca de interface com resposta atrasada e pausa para histórico. Os componentes WPF foram renderizados em 1280 × 800 e 1000 × 640 com SSID fictício e sem erros de binding. Não foi realizada nova coleta física; a renderização local não comprova o comportamento do adaptador real. Saída local em `artifacts/ssid-final` e imagens em `artifacts/ssid-preview`, fora do controle de versão.
+
+## Distribuição 1.1.0
+
+Após a solicitação do responsável para testar o executável, a janela atual foi aberta no Windows real. O SSID ficou visível, o gateway foi sugerido e a contagem avançou de 7 para 18 leituras no monitor, com extremos de −67 e −64 dBm. Essa inspeção foi passiva, sem ICMP, gravação ou nova coleta de 60 s; não comprova calibração.
+
+Os pacotes 1.1.0 foram gerados com .NET 10.0.13 incluído, extraídos e comparados por SHA-256 com os arquivos de publicação. Foram conferidos versão de produto 1.1.0, versão de arquivo 1.1.0.0, licenças, guia e notas. O ZIP desktop contém 406 arquivos; o ZIP de console, 197. Não contêm PDBs, fontes, coletas ou ferramentas locais de desenvolvimento; os JSONs incluídos são somente manifests de dependências/runtime do .NET. Os hashes dos dois ZIPs acompanham a release.
+
+O console extraído executou `--help` com código 0. O aplicativo WPF extraído abriu no modo padrão e mostrou SSID, gateway sugerido e leitura do adaptador; não foi necessário `--software-rendering` nessa inspeção. A falha de aceleração observada antes não foi diagnosticada nem é considerada corrigida. A solução 1.1.0 foi compilada em Release, em saída isolada `artifacts/release-1.1.0`, sem avisos/erros, com **226 testes simulados aprovados**, sem falhas ou ignorados. Permanecem os limites de validação e os cenários físicos pendentes descritos acima.
+
 ## Referências
 
 A correção posterior do RSSI estático foi validada com participação do responsável durante deslocamento: 60 leituras entre −69 e −24 dBm e 13 varreduras confirmadas, com aviso de possível impacto no RTT preservado no JSON e na análise. Compilação final sem avisos/erros e **218 testes aprovados**. O responsável confirmou a variação durante o movimento. Consulte o [diagnóstico completo, limites e política autorizada de varredura](correcao-rssi-estatico.md).

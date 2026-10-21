@@ -11,6 +11,8 @@ public partial class App : System.Windows.Application
 {
     protected override void OnStartup(StartupEventArgs e)
     {
+        if (e.Args.Contains("--software-rendering", StringComparer.Ordinal))
+            System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
         base.OnStartup(e);
         var window = new MainWindow();
         var clock = new SystemProbeClock();

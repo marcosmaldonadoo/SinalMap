@@ -5,6 +5,10 @@
 TestResults/
 artifacts/
 results/
+.interface-design/
+.agents/skills/interface-design/
+.claude/skills/interface-design/
+.codex/skills/interface-design/
 *.user
 *.suo
 *.tmp
