@@ -16,6 +16,19 @@ internal enum WlanOpcode : uint
 }
 internal enum Dot11BssType : uint { Infrastructure = 1, Independent = 2, Any = 3 }
 
+[StructLayout(LayoutKind.Sequential)]
+internal struct WlanNotificationData
+{
+    public uint Source;
+    public uint Code;
+    public Guid InterfaceId;
+    public uint DataSize;
+    public nint Data;
+}
+
+[UnmanagedFunctionPointer(CallingConvention.Winapi)]
+internal delegate void WlanNotificationCallback(ref WlanNotificationData notification, nint context);
+
 [StructLayout(LayoutKind.Sequential, Pack = 8)]
 internal unsafe struct Dot11Ssid
 {

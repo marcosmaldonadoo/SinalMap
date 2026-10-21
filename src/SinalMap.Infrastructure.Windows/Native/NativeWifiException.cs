@@ -8,7 +8,7 @@ public sealed class NativeWifiException : Exception
     public ProbeIssue Issue { get; }
 
     internal NativeWifiException(uint code, string operation) : this(ToIssue(code, operation)) { }
-    private NativeWifiException(ProbeIssue issue) : base(issue.Message) => Issue = issue;
+    internal NativeWifiException(ProbeIssue issue) : base(issue.Message) => Issue = issue;
 
     internal static NativeWifiException InvalidData(string operation, string message) =>
         new(new ProbeIssue(IssueKind.InvalidData, operation, message));

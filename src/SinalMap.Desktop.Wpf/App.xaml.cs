@@ -15,12 +15,13 @@ public partial class App : System.Windows.Application
         var window = new MainWindow();
         var clock = new SystemProbeClock();
         var reader = new JsonSessionReader();
-        var viewModel = new ProbeViewModel(new WindowsWifiMonitor(clock), new WindowsIcmpProbe(clock), clock,
+        var viewModel = new ProbeViewModel(new WindowsWifiMonitor(clock, preferRealtimeRssi: true), new WindowsIcmpProbe(clock), clock,
             new JsonSessionStore(), reader.ReadAsync, new ProbeDialogs(window),
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SinalMap", "results"),
             ex => ex is NativeWifiException native
                 ? $"{native.Issue.Operation}: falha na API Wi-Fi (código {native.Issue.NativeCode?.ToString() ?? "n/a"}). Confira WlanSvc e o consentimento de localização no Windows; executar como administrador não substitui consentimento."
-                : "A operação falhou. Confira a interface Wi-Fi e tente novamente.");
+                : "A operação falhou. Confira a interface Wi-Fi e tente novamente.",
+            signalRefresher: new WindowsWifiSignalRefresher(clock));
         window.DataContext = viewModel;
         MainWindow = window;
         window.Show();

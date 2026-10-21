@@ -3,40 +3,120 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Application.Resources>
         <BooleanToVisibilityConverter x:Key="BoolVisibility" />
+        <SolidColorBrush x:Key="Ink" Color="#172B4D" />
+        <SolidColorBrush x:Key="Muted" Color="#64748B" />
+        <SolidColorBrush x:Key="Accent" Color="#0F766E" />
+        <SolidColorBrush x:Key="AccentTint" Color="#E5F5F1" />
+        <SolidColorBrush x:Key="Line" Color="#E1E8F0" />
+
+        <Style x:Key="Caption" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,7" />
+        </Style>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="20" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+        </Style>
         <Style TargetType="Button">
-            <Setter Property="Padding" Value="12,9" />
-            <Setter Property="Margin" Value="0,0,0,8" />
-            <Setter Property="Background" Value="#EAF2F3" />
-            <Setter Property="Foreground" Value="#173D47" />
-            <Setter Property="BorderBrush" Value="#B9CDD1" />
+            <Setter Property="Padding" Value="13,10" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Foreground" Value="{StaticResource Ink}" />
+            <Setter Property="BorderBrush" Value="#CED9E4" />
+            <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="Opacity" Value="0.85" /></Trigger>
-                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Opacity" Value="0.7" /></Trigger>
-                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="#164B60" /><Setter TargetName="Chrome" Property="BorderThickness" Value="2" /></Trigger>
-                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.45" /></Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template"><Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="Opacity" Value="0.82" /></Trigger>
+                        <Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Opacity" Value="0.64" /></Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="#14B8A6" /><Setter TargetName="Chrome" Property="BorderThickness" Value="2" /></Trigger>
+                        <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.38" /></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value></Setter>
         </Style>
         <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="#006B70" />
+            <Setter Property="Background" Value="{StaticResource Accent}" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderBrush" Value="#006B70" />
+            <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
             <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="MinHeight" Value="44" />
+        </Style>
+        <Style x:Key="QuietButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#F4F7FA" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
         </Style>
         <Style TargetType="TextBox">
-            <Setter Property="Padding" Value="9,7" />
-            <Setter Property="BorderBrush" Value="#AFC5CC" />
+            <Setter Property="Padding" Value="11,9" />
+            <Setter Property="MinHeight" Value="39" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Foreground" Value="{StaticResource Ink}" />
+            <Setter Property="BorderBrush" Value="#CED9E4" />
+            <Setter Property="BorderThickness" Value="1" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="SelectionBrush" Value="#B5E7DB" />
+            <Setter Property="Template"><Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Chrome" CornerRadius="7" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource Accent}" /></Trigger>
+                        <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.5" /></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value></Setter>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Padding" Value="9,7" />
+            <Setter Property="MinHeight" Value="45" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Foreground" Value="{StaticResource Ink}" />
+            <Setter Property="BorderBrush" Value="#CED9E4" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0,18,0,0" />
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="{StaticResource Ink}" />
+            <Setter Property="Padding" Value="15,11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Template"><Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Border x:Name="Tab" Background="Transparent" CornerRadius="7" Padding="{TemplateBinding Padding}" Margin="0,0,5,0">
+                        <ContentPresenter x:Name="Header" ContentSource="Header" VerticalAlignment="Center" HorizontalAlignment="Center" RecognizesAccessKey="True" TextElement.Foreground="{StaticResource Muted}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True"><Setter TargetName="Tab" Property="Background" Value="{StaticResource AccentTint}" /><Setter TargetName="Header" Property="TextElement.Foreground" Value="{StaticResource Accent}" /></Trigger>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Tab" Property="Background" Value="#F0F5F7" /></Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Tab" Property="BorderBrush" Value="{StaticResource Accent}" /><Setter TargetName="Tab" Property="BorderThickness" Value="1" /></Trigger>
+                        <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.35" /></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value></Setter>
         </Style>
         <Style TargetType="DataGrid">
             <Setter Property="AutoGenerateColumns" Value="False" />
@@ -46,18 +126,30 @@
             <Setter Property="CanUserReorderColumns" Value="False" />
             <Setter Property="HeadersVisibility" Value="Column" />
             <Setter Property="GridLinesVisibility" Value="Horizontal" />
-            <Setter Property="HorizontalGridLinesBrush" Value="#E2EAED" />
-            <Setter Property="BorderBrush" Value="#D6E2E6" />
-            <Setter Property="RowHeight" Value="32" />
-            <Setter Property="AlternatingRowBackground" Value="#F5F9FA" />
-        </Style>
-        <Style TargetType="TabItem"><Setter Property="Padding" Value="12,8" /></Style>
-        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="HorizontalGridLinesBrush" Value="#EDF1F5" />
+            <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+            <Setter Property="RowHeight" Value="36" />
             <Setter Property="Background" Value="White" />
-            <Setter Property="BorderBrush" Value="#DBE5E8" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="Padding" Value="18" />
+            <Setter Property="AlternatingRowBackground" Value="#F8FAFC" />
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F3F6FA" />
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="10,11" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+        </Style>
+        <Style TargetType="DataGridCell">
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template"><Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"><ContentPresenter VerticalAlignment="Center" /></Border>
+                </ControlTemplate>
+            </Setter.Value></Setter>
+            <Style.Triggers><Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#DDF4EC" /><Setter Property="Foreground" Value="#134E4A" /></Trigger></Style.Triggers>
         </Style>
     </Application.Resources>
 </Application>

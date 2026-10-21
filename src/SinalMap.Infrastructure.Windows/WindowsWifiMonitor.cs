@@ -11,19 +11,26 @@ public sealed class WindowsWifiMonitor : IWifiMonitor
     private readonly SemaphoreSlim readGate = new(1, 1);
     private readonly IWlanApi api;
     private readonly IProbeClock clock;
+    private readonly Func<IReadOnlyDictionary<Guid, string>> readGateways;
+    private readonly bool preferRealtimeRssi;
 
-    public WindowsWifiMonitor(IProbeClock clock)
+    public WindowsWifiMonitor(IProbeClock clock, bool preferRealtimeRssi = false)
     {
         if (!OperatingSystem.IsWindows())
             throw new PlatformNotSupportedException("Native Wi-Fi collection requires Windows.");
         api = new WlanApi();
         this.clock = clock;
+        readGateways = WindowsGatewayDiscovery.Read;
+        this.preferRealtimeRssi = preferRealtimeRssi;
     }
 
-    internal WindowsWifiMonitor(IWlanApi api, IProbeClock clock)
+    internal WindowsWifiMonitor(IWlanApi api, IProbeClock clock,
+        Func<IReadOnlyDictionary<Guid, string>>? readGateways = null, bool preferRealtimeRssi = false)
     {
         this.api = api;
         this.clock = clock;
+        this.readGateways = readGateways ?? (() => new Dictionary<Guid, string>());
+        this.preferRealtimeRssi = preferRealtimeRssi;
     }
 
     public async Task<IReadOnlyList<WifiInterfaceInfo>> ListInterfacesAsync(CancellationToken cancellationToken)
@@ -32,8 +39,12 @@ public sealed class WindowsWifiMonitor : IWifiMonitor
         var task = Task.Run<IReadOnlyList<WifiInterfaceInfo>>(() =>
         {
             using var client = new WlanClient(api);
+            var gateways = readGateways();
             return client.EnumerateInterfaces().Select(i =>
-                new WifiInterfaceInfo(i.Id, i.GetDescription(), ToState(i.State))).ToArray();
+                new WifiInterfaceInfo(i.Id, i.GetDescription(), ToState(i.State))
+                {
+                    Ipv4Gateway = gateways.GetValueOrDefault(i.Id)
+                }).ToArray();
         }, cancellationToken);
         ObserveFault(task);
         return await task.WaitAsync(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
@@ -142,8 +153,21 @@ public sealed class WindowsWifiMonitor : IWifiMonitor
         catch (NativeWifiException ex) { issues.Add(ex.Issue); return null; }
     }
 
-    private static (int? Value, string? Source) ReadRssi(WlanClient client, Guid id, List<ProbeIssue> issues)
+    private (int? Value, string? Source) ReadRssi(WlanClient client, Guid id, List<ProbeIssue> issues)
     {
+        if (preferRealtimeRssi)
+        {
+            try { return (client.QuerySingleLinkRealtimeRssi(id), "WlanQueryInterface:realtime_connection_quality.linksInfo[0].lRssi"); }
+            catch (NativeWifiException ex)
+            {
+                issues.Add(ex.Issue);
+                // Restringir a compatibilidade aos erros da API, sem contornar dados inválidos ou múltiplos enlaces.
+                if (ex.Issue.NativeCode is null || ex.Issue.Kind is not (IssueKind.NativeError or IssueKind.NotSupported))
+                    return (null, null);
+            }
+            try { return (client.Query<int>(id, WlanOpcode.Rssi), "WlanQueryInterface:rssi"); }
+            catch (NativeWifiException ex) { issues.Add(ex.Issue); return (null, null); }
+        }
         try { return (client.Query<int>(id, WlanOpcode.Rssi), "WlanQueryInterface:rssi"); }
         catch (NativeWifiException ex)
         {

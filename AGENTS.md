@@ -12,6 +12,10 @@ Em 2026-10-20, após revisar a proposta e executar nova coleta física, o respon
 
 A extensão de 2026-10-20 solicitada pelo responsável inclui o valor de RSSI em dBm e seu gráfico ao vivo na janela. A publicação de amostras não deve bloquear a agenda; ausência e mudança de contexto precisam interromper a linha. Continuam vigentes a sessão de 60 segundos e as consultas/fontes já existentes.
 
+A solicitação posterior inclui monitoramento contínuo de RSSI sem iniciar um teste, sem ICMP nem gravação, e sugestão do gateway IPv4 da interface selecionada. O monitor pausa antes de coleta ou abertura de histórico; a sugestão permanece editável e não substitui um destino alterado pelo usuário.
+
+Após diagnóstico físico de RSSI estático em 2026-10-20, o responsável autorizou varredura Wi-Fi a cada 5 s também nos testes de 60 s, com registro de que o RTT pode ser afetado. A janela prioriza o RSSI da consulta em tempo real para um único enlace não MLO, mantendo a consulta tradicional como compatibilidade. Preservar os eventos de varredura e o aviso na sessão; sucesso do pedido não equivale a conclusão confirmada. O console não inicia varreduras na coleta padrão.
+
 Não inventar medições, canais ou frequências. Valores não retornados ou não suportados devem permanecer nulos com o motivo registrado. Não converter qualidade percentual em RSSI medido. Identificar dados de cache e preservar os códigos de erro das APIs nativas. Testes simulados não comprovam recepção Wi-Fi em hardware real.
 
 ## Verificação

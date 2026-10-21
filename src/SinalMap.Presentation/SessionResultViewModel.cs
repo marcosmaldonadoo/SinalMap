@@ -24,16 +24,20 @@ public sealed class SessionResultViewModel
     public string Rssi => Metric(Summary.RssiDbm, "dBm");
     public string Availability => $"Wi-Fi conectado: {Summary.ConnectedWifi}/{Summary.Positions} · RSSI: {Summary.RssiDbm.Count}/{Summary.Positions} · canal: {Summary.Channels}/{Summary.Positions} · frequência: {Summary.Frequencies}/{Summary.Positions} ({Summary.CachedFrequencies} em cache BSS)";
     public string Schedule => $"Duração: {Summary.DurationSeconds.ToString("N2", Culture)} s · descartadas por atraso: {Summary.SkippedLate} · canceladas antes do despacho: {Summary.CancelledBeforeDispatch} · tentativas ICMP desconhecidas: {Summary.UnknownIcmpAttempts}";
-    public string Sources => $"RSSI: principal {Summary.PrimaryRssi} · alternativa {Summary.AlternativeRssi} · outra/não identificada {Summary.OtherRssiSource} · mudanças de BSSID registradas: {Summary.BssidChanges}";
+    public string Sources => $"RSSI: consulta tradicional {Summary.PrimaryRssi} · tempo real {Summary.AlternativeRssi} · outra/não identificada {Summary.OtherRssiSource} · mudanças de BSSID registradas: {Summary.BssidChanges}";
     public string ContextNotice => (Summary.Context.HasVariation
         ? "O contexto variou nos registros. As médias globais podem reunir redes, APs ou condições diferentes. " : "") +
         (Summary.Context.HasUnknown ? "Há contexto indeterminado por dados ausentes, inválidos ou fontes não reconhecidas. " : "") +
         "As estatísticas são globais; um único valor não comprova conexão contínua ou ausência de mudanças entre leituras.";
     public string OccurrenceNotice => Occurrences.Count == 0 ? "Nenhuma ocorrência registrada." : "Posições por tipo/código; categorias podem se sobrepor.";
+    public string ScanNotice { get; }
 
     public SessionResultViewModel(ProbeSession session)
     {
         Summary = SessionAnalyzer.Analyze(session);
+        ScanNotice = session.ActiveWifiScanning ?
+            $"Varredura Wi-Fi ativa: {session.WifiScans?.Count(s => s.Completed) ?? 0}/{session.WifiScans?.Count ?? 0} confirmações registradas. O RTT pode ter sido aumentado pelas varreduras." :
+            "Não há registro de varredura Wi-Fi ativa feita por esta coleta.";
         var context = Summary.Context;
         Context = [Row("Interface registrada", context.Interface), Row("SSID em bytes", context.Ssid),
             Row("AP (BSSID)", context.Bssid), Row("Destino ICMP", context.Target), Row("Canal", context.Channel),
@@ -63,8 +67,8 @@ public sealed class SessionResultViewModel
                 (s.Wifi.FrequencySource == "WlanGetNetworkBssList:ulChCenterFrequency (cached)" ? " · cache BSS" : " · fonte não reconhecida"),
             s.Wifi?.RssiDbm is null ? "Ausente" : s.Wifi.RssiSource switch
             {
-                "WlanQueryInterface:rssi" => "Principal",
-                "WlanQueryInterface:realtime_connection_quality.linksInfo[0].lRssi" => "Alternativa",
+                "WlanQueryInterface:rssi" => "Tradicional",
+                "WlanQueryInterface:realtime_connection_quality.linksInfo[0].lRssi" => "Tempo real",
                 _ => "Ausente/não reconhecida"
             },
             string.Join("; ", s.Issues.Concat(s.Wifi?.Issues ?? [])

@@ -10,7 +10,7 @@ dotnet test SinalMap.sln -c Release --no-build --no-restore
 dotnet run --project src/SinalMap.Desktop.Wpf -c Release --no-build
 ```
 
-O aplicativo usa .NET 10 Desktop e Windows. A pasta padrão é `Documentos/SinalMap/results`; a caixa de texto e o diálogo permitem mudar esse caminho. Não há destino predefinido. Selecione explicitamente uma interface conectada quando houver mais de uma e informe um IPv4 autorizado.
+O aplicativo usa .NET 10 Desktop e Windows. A pasta padrão é `Documentos/SinalMap/results`; a caixa de texto e o diálogo permitem mudar esse caminho. A revisão de monitoramento contínuo sugere o gateway IPv4 da interface selecionada; confira o destino antes do teste. Selecione explicitamente uma interface conectada quando houver mais de uma.
 
 ## Comportamento entregue
 
@@ -46,7 +46,15 @@ Os cenários de falha de armazenamento/nova tentativa e fechamento durante grava
 
 A extensão posterior da aba Sinal tem **184 testes aprovados** e uma coleta física própria, com atualização de RSSI durante a aquisição e leituras da consulta alternativa. Consulte o [registro do sinal ao vivo](sinal-ao-vivo.md) para os valores, ausências, fontes e limites dessa execução.
 
-O roteiro abaixo continua disponível para repetição. O redimensionamento até o mínimo, a navegação completa por teclado e a seleção pelo diálogo de pasta ainda exigem inspeção específica; o teste local informou a pasta pela caixa de texto.
+## Aperfeiçoamento visual de 2026-10-20
+
+A revisão organiza a configuração em uma coluna lateral, mantém os comandos de início/cancelamento acessíveis e destaca a última leitura, os extremos registrados e a disponibilidade de RSSI. As abas têm espaçamento uniforme; a tabela aproxima RSSI e RTT das primeiras colunas. O gráfico permite inspecionar uma posição com o mouse, exibindo tempo e leitura, inclusive ausência. O indicador diferencia histórico, coleta ao vivo e espera. Detalhes, fontes e limites continuam disponíveis em uma seção expansível.
+
+Na mesma máquina Windows x64, com SDK .NET 10.0.402 e runtime 10.0.13, a versão final compilou em Release com 0 avisos e 0 erros; os **184 testes** existentes passaram, sem falhas ou ignorados. Essa revisão altera a apresentação, preservando aquisição, salvamento e formato JSON.
+
+Inspeção visual: janela padrão de 1240 × 850 e inicialização temporária no mínimo de 1000 × 700, com leitura e comando de início acessíveis. A expansão dos detalhes no tamanho mínimo foi conferida com rolagem até o final. A inspeção de ponto exibiu tempo e RSSI reais do histórico. A abertura por `Ctrl+O` e diálogo nativo reutilizou uma coleta anterior de 60 posições: 57 com RSSI, mínimo −56 dBm, máximo −54 dBm e última leitura −56 dBm, com lacunas preservadas. Não foi feita nova coleta física para esta revisão visual. Capturas com caminhos locais não foram adicionadas ao repositório.
+
+O roteiro abaixo continua disponível para repetição. A navegação completa por teclado e a seleção pelo diálogo de pasta ainda exigem inspeção específica; o teste local informou a pasta pela caixa de texto.
 
 1. Abrir a janela, conferir seleção da interface e pasta; tentar iniciar com destino inválido e confirmar a recusa.
 2. Escolher um IPv4 autorizado e uma pasta local, iniciar e aguardar uma coleta de 60 s. Conferir resumo, amostras, contexto e ocorrências.
@@ -57,6 +65,18 @@ O roteiro abaixo continua disponível para repetição. O redimensionamento até
 7. Abrir um JSON salvo pelo diálogo ou `Ctrl+O`; conferir que não ocorre nova aquisição e que o arquivo permanece intacto.
 8. Conferir legibilidade, navegação por teclado, rolagem das abas/tabela e redimensionamento até o tamanho mínimo.
 
+## Monitoramento sem teste e sugestão de gateway
+
+A revisão posterior permite acompanhar RSSI ao abrir a janela, sem iniciar coleta, informar destino ou enviar ICMP. O monitor mantém uma janela recente limitada, pausa para coleta/abertura de histórico e é encerrado ao fechar. O gateway IPv4 vem da configuração Windows do mesmo GUID de interface, com destino editável e sem escolha arbitrária entre candidatos distintos. A amostra Wi-Fi da coleta é publicada sem aguardar ICMP, preservando a amostra completa para salvamento.
+
+No mesmo ambiente Windows x64/.NET 10, compilação Release sem avisos/erros e **200 testes aprovados** (16 casos adicionais simulados). A inspeção local da janela mostrou o modo **MONITORANDO**, contagem e horário avançando antes de iniciar qualquer teste e gateway preenchido. Foi uma inspeção passiva de leituras, sem nova sessão de 60 s ou comparação de calibração com outro aplicativo. Os cenários de troca de interface e transição para coleta estão cobertos por simulação; não foram provocados fisicamente nesta revisão.
+
+## Distribuição 1.0.0
+
+Os pacotes portáteis Windows x64 foram publicados localmente com .NET 10.0.13 incluído, extraídos e inspecionados. O executável WPF extraído abriu e exibiu leituras/varreduras; o console executou `--help` com código 0. A versão de arquivo é 1.0.0.0 e a versão de produto é 1.0.0. O conteúdo desktop do pacote final é idêntico ao que foi inspecionado. Os ZIPs não incluem coletas, código-fonte ou PDBs; seus hashes SHA-256 acompanham a release. A compilação final da solução teve 0 avisos/erros e os 218 testes passaram no Windows local.
+
 ## Referências
+
+A correção posterior do RSSI estático foi validada com participação do responsável durante deslocamento: 60 leituras entre −69 e −24 dBm e 13 varreduras confirmadas, com aviso de possível impacto no RTT preservado no JSON e na análise. Compilação final sem avisos/erros e **218 testes aprovados**. O responsável confirmou a variação durante o movimento. Consulte o [diagnóstico completo, limites e política autorizada de varredura](correcao-rssi-estatico.md).
 
 A afinidade de thread segue o [modelo de threads do WPF](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/threading-model). O diálogo de pasta usa [OpenFolderDialog](https://learn.microsoft.com/en-us/dotnet/api/microsoft.win32.openfolderdialog?view=windowsdesktop-10.0).

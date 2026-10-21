@@ -31,6 +31,7 @@ internal static class SessionComparisonCommand
             WriteContext("Canal", context.Channel);
             WriteContext("Frequência em cache BSS", context.CachedFrequency);
             WriteContext("Fonte RSSI reconhecida", context.RssiSource);
+            WriteContext("Uso de varredura Wi-Fi ativa", context.ActiveScanning);
             WriteDifference("Diferença da média de RTT (B − A)", comparison.MeanLatencyDifferenceMilliseconds, "ms");
             WriteDifference("Diferença da média de RSSI (B − A)", comparison.MeanRssiDifferenceDb, "dB");
             output.WriteLine("As diferenças descrevem os registros; não isolam causas nem comprovam mudança física de local. Compare também as durações, os contadores e as ocorrências.");

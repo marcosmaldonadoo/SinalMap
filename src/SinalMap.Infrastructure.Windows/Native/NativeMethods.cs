@@ -30,6 +30,16 @@ internal static class NativeMethods
 
     [DllImport("wlanapi.dll", ExactSpelling = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    internal static extern uint WlanScan(SafeWlanHandle handle, in Guid id, nint ssid, nint ie, nint reserved);
+
+    [DllImport("wlanapi.dll", ExactSpelling = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    internal static extern uint WlanRegisterNotification(SafeWlanHandle handle, uint source,
+        [MarshalAs(UnmanagedType.Bool)] bool ignoreDuplicate, WlanNotificationCallback? callback,
+        nint context, nint reserved, out uint previousSource);
+
+    [DllImport("wlanapi.dll", ExactSpelling = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     internal static extern uint WlanGetNetworkBssList(SafeWlanHandle handle, in Guid id, ref Dot11Ssid ssid,
         Dot11BssType bssType, [MarshalAs(UnmanagedType.Bool)] bool securityEnabled, nint reserved, out nint pointer);
 }
@@ -43,6 +53,9 @@ internal sealed class WlanApi : IWlanApi
     public uint EnumerateInterfaces(SafeWlanHandle handle, out nint pointer) => NativeMethods.WlanEnumInterfaces(handle, 0, out pointer);
     public uint QueryInterface(SafeWlanHandle handle, Guid id, WlanOpcode opcode, out uint size, out nint pointer) =>
         NativeMethods.WlanQueryInterface(handle, in id, opcode, 0, out size, out pointer, out _);
+    public uint Scan(SafeWlanHandle handle, Guid id) => NativeMethods.WlanScan(handle, in id, 0, 0, 0);
+    public uint RegisterNotification(SafeWlanHandle handle, uint source, WlanNotificationCallback? callback) =>
+        NativeMethods.WlanRegisterNotification(handle, source, false, callback, 0, 0, out _);
     public uint GetBssList(SafeWlanHandle handle, Guid id, ref Dot11Ssid ssid,
         Dot11BssType bssType, bool securityEnabled, out nint pointer) =>
         NativeMethods.WlanGetNetworkBssList(handle, in id, ref ssid, bssType, securityEnabled, 0, out pointer);

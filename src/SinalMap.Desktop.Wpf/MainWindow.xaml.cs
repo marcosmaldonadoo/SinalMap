@@ -12,7 +12,11 @@ public partial class MainWindow : Window
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (DataContext is ProbeViewModel vm) await vm.RefreshAsync();
+        if (DataContext is ProbeViewModel vm)
+        {
+            await vm.RefreshAsync();
+            vm.StartMonitoring();
+        }
     }
 
     private async void OnClosing(object? sender, CancelEventArgs e)

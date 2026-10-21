@@ -42,4 +42,8 @@ public sealed record ProbeSession(
     string OperatingSystem,
     string Runtime,
     IReadOnlyList<ProbeSample> Samples,
-    IReadOnlyList<BssidChange> BssidChanges);
+    IReadOnlyList<BssidChange> BssidChanges)
+{
+    public bool ActiveWifiScanning { get; init; }
+    public IReadOnlyList<WifiScanObservation>? WifiScans { get; init; }
+}

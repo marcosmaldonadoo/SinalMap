@@ -25,9 +25,14 @@ public enum IssueKind
 
 public sealed record ProbeIssue(IssueKind Kind, string Operation, string Message, uint? NativeCode = null);
 
+public sealed record WifiScanObservation(ClockStamp StartedAt, ClockStamp CompletedAt, bool Completed, ProbeIssue? Issue);
+
 public enum WifiConnectionState { Unknown, Connected, Disconnected, Unavailable }
 
-public sealed record WifiInterfaceInfo(Guid Id, string Description, WifiConnectionState State);
+public sealed record WifiInterfaceInfo(Guid Id, string Description, WifiConnectionState State)
+{
+    public string? Ipv4Gateway { get; init; }
+}
 
 public sealed record WifiSnapshot(
     Guid InterfaceId,

@@ -25,18 +25,27 @@ public sealed class ProbeViewModel : ObservableObject
     private string status = "Atualize as interfaces para começar, ou abra um JSON salvo.";
     private string error = "";
     private string targetText = "";
+    private bool targetEdited;
+    private bool targetFromGateway;
     private string outputFolder;
     private string savedPath = "";
     private WifiInterfaceInfo? selectedInterface;
     private IReadOnlyList<WifiInterfaceInfo> interfaces = [];
     private SessionResultViewModel? result;
     private int selectedTabIndex;
+    private bool monitoringRequested;
+    private CancellationTokenSource? monitoringCancellation;
+    private Task monitoringTask = Task.CompletedTask;
+    private readonly IProbeClock clock;
+    private readonly IWifiSignalRefresher? signalRefresher;
 
     public ProbeViewModel(IWifiMonitor wifi, IIcmpProbe icmp, IProbeClock clock, ISessionStore store,
         Func<string, CancellationToken, Task<ProbeSession>> read, IProbeDialogs dialogs,
-        string outputFolder, Func<Exception, string>? describeError = null)
+        string outputFolder, Func<Exception, string>? describeError = null, IWifiSignalRefresher? signalRefresher = null)
     {
         this.wifi = wifi;
+        this.clock = clock;
+        this.signalRefresher = signalRefresher;
         runner = new(wifi, icmp, clock);
         this.store = store;
         this.read = read;
@@ -44,6 +53,8 @@ public sealed class ProbeViewModel : ObservableObject
         this.outputFolder = outputFolder;
         this.describeError = describeError;
         RefreshCommand = new(RefreshAsync, ShowError, () => CanReplaceSession);
+        MonitorCommand = new(() => { StartMonitoring(); return Task.CompletedTask; }, ShowError,
+            () => CanReplaceSession && SelectedInterface?.State == WifiConnectionState.Connected);
         StartCommand = new(StartAsync, ShowError, () => CanReplaceSession && SelectedInterface?.State == WifiConnectionState.Connected);
         OpenCommand = new(() => { var path = dialogs.ChooseSessionFile(); return path is null ? Task.CompletedTask : OpenAsync(path); }, ShowError, () => CanReplaceSession);
         ChooseFolderCommand = new(() => { OutputFolder = dialogs.ChooseOutputFolder(OutputFolder) ?? OutputFolder; return Task.CompletedTask; }, ShowError, () => CanEditFolder);
@@ -67,6 +78,7 @@ public sealed class ProbeViewModel : ObservableObject
     }
 
     public AsyncCommand RefreshCommand { get; }
+    public AsyncCommand MonitorCommand { get; }
     public AsyncCommand StartCommand { get; }
     public AsyncCommand OpenCommand { get; }
     public AsyncCommand ChooseFolderCommand { get; }
@@ -76,17 +88,53 @@ public sealed class ProbeViewModel : ObservableObject
     public SignalHistoryViewModel Signal { get; private set; } = new();
     public int SelectedTabIndex { get => selectedTabIndex; set => Set(ref selectedTabIndex, value); }
     public bool HasResult => Result is not null;
+    public bool HasError => !string.IsNullOrWhiteSpace(Error);
+    public bool HasSavedPath => !string.IsNullOrWhiteSpace(SavedPath);
+    public string OperationLabel => Operation switch
+    {
+        ProbeOperation.Listing => "ATUALIZANDO", ProbeOperation.Collecting => "MEDINDO",
+        ProbeOperation.Cancelling => "CANCELANDO", ProbeOperation.Saving => "SALVANDO", ProbeOperation.Opening => "ABRINDO",
+        _ => HasPendingSave ? "NÃO SALVO" : HasError ? "VERIFICAR" : HasResult ? "RESULTADO DISPONÍVEL" : "PRONTO PARA MEDIR"
+    };
     public ProbeOperation Operation { get => operation; private set { Set(ref operation, value); RefreshState(); } }
     public bool IsBusy => Operation != ProbeOperation.Idle;
     public bool HasPendingSave => pendingSession is not null;
     public bool CanReplaceSession => !IsBusy && !HasPendingSave && !closing;
     public bool CanEditFolder => !IsBusy && !closing;
     public string Status { get => status; private set => Set(ref status, value); }
-    public string Error { get => error; private set => Set(ref error, value); }
-    public string TargetText { get => targetText; set => Set(ref targetText, value); }
+    public string Error { get => error; private set { Set(ref error, value); Notify(nameof(HasError)); Notify(nameof(OperationLabel)); } }
+    public string TargetText
+    {
+        get => targetText;
+        set
+        {
+            if (!Set(ref targetText, value)) return;
+            targetEdited = true;
+            targetFromGateway = false;
+            Notify(nameof(TargetHint));
+        }
+    }
+    public string TargetHint => targetFromGateway ? "Gateway desta interface preenchido pelo Windows. Você pode editar." :
+        "Informe um IPv4 autorizado. O gateway não será escolhido entre vários candidatos.";
     public string OutputFolder { get => outputFolder; set => Set(ref outputFolder, value); }
-    public string SavedPath { get => savedPath; private set => Set(ref savedPath, value); }
-    public WifiInterfaceInfo? SelectedInterface { get => selectedInterface; set { Set(ref selectedInterface, value); StartCommand.NotifyCanExecuteChanged(); } }
+    public string SavedPath { get => savedPath; private set { Set(ref savedPath, value); Notify(nameof(HasSavedPath)); } }
+    public WifiInterfaceInfo? SelectedInterface
+    {
+        get => selectedInterface;
+        set
+        {
+            if (!Set(ref selectedInterface, value)) return;
+            if (!targetEdited)
+            {
+                targetFromGateway = value is { State: WifiConnectionState.Connected, Ipv4Gateway: not null };
+                Set(ref targetText, targetFromGateway ? value!.Ipv4Gateway! : "", nameof(TargetText));
+                Notify(nameof(TargetHint));
+            }
+            StartCommand.NotifyCanExecuteChanged();
+            MonitorCommand.NotifyCanExecuteChanged();
+            RestartMonitoring();
+        }
+    }
     public IReadOnlyList<WifiInterfaceInfo> Interfaces { get => interfaces; private set => Set(ref interfaces, value); }
     public SessionResultViewModel? Result { get => result; private set { Set(ref result, value); Notify(nameof(HasResult)); } }
 
@@ -103,7 +151,7 @@ public sealed class ProbeViewModel : ObservableObject
             Status = connected.Length switch
             {
                 0 => "Nenhuma interface Wi-Fi conectada. Conecte pelo Windows e atualize a lista.",
-                1 => "Interface conectada selecionada. Informe o IPv4 de destino e confira a pasta de resultados.",
+                1 => "Interface conectada selecionada. Confira o destino IPv4 e a pasta antes de iniciar.",
                 _ => "Selecione explicitamente uma das interfaces Wi-Fi conectadas."
             };
         });
@@ -124,24 +172,34 @@ public sealed class ProbeViewModel : ObservableObject
             try { options.Validate(); }
             catch (ArgumentException) { throw new ArgumentException("Use um IPv4 unicast; loopback, multicast, broadcast e endereço zero não são aceitos."); }
             ValidateOutputFolder();
+            monitoringRequested = false;
             Result = null;
             SavedPath = "";
             SelectedTabIndex = 0;
             Signal.Begin();
-            Status = "Medindo por 60 segundos. O sinal em dBm é atualizado a cada leitura concluída; cancelar salva a sessão parcial.";
+            Status = signalRefresher is null ?
+                "Medindo por 60 segundos. O sinal em dBm é atualizado a cada leitura concluída; cancelar salva a sessão parcial." :
+                "Medindo por 60 segundos com varredura Wi-Fi a cada 5 s. A varredura pode aumentar o RTT; isso será registrado no JSON.";
             var updates = Channel.CreateUnbounded<ProbeSample>(new UnboundedChannelOptions
             {
                 SingleReader = true, SingleWriter = false, AllowSynchronousContinuations = false
             });
             var display = ReadSignalAsync(updates.Reader);
+            var scans = new List<WifiScanObservation>();
+            using var refreshCancellation = CancellationTokenSource.CreateLinkedTokenSource(token);
+            var refresh = RefreshSignalLoopAsync(selected.Id, refreshCancellation.Token, scans);
             // O coletor mantém a agenda e o controle de rota existentes, fora da thread gráfica.
-            try { pendingSession = await Task.Run(() => runner.RunAsync(options, token, updates.Writer)); }
+            try { pendingSession = await Task.Run(() => runner.RunAsync(options, token, signalUpdates: updates.Writer)); }
             finally
             {
+                refreshCancellation.Cancel();
+                await refresh;
                 updates.Writer.TryComplete();
                 await display;
                 Signal.End();
             }
+            if (signalRefresher is not null)
+                pendingSession = pendingSession with { ActiveWifiScanning = true, WifiScans = scans.ToArray(), CompletedAt = clock.Capture() };
             Signal.Load(pendingSession);
             RefreshState();
             Result = new(pendingSession);
@@ -158,6 +216,7 @@ public sealed class ProbeViewModel : ObservableObject
             var session = await read(path, token);
             var loaded = new SessionResultViewModel(session);
             Result = loaded;
+            monitoringRequested = false;
             Signal.Load(session);
             SelectedTabIndex = 0;
             SavedPath = Path.GetFullPath(path);
@@ -177,6 +236,94 @@ public sealed class ProbeViewModel : ObservableObject
         await foreach (var sample in reader.ReadAllAsync()) Signal.Accept(sample);
     }
 
+    public void StartMonitoring()
+    {
+        if (!CanReplaceSession) return;
+        monitoringRequested = true;
+        Result = null;
+        SavedPath = "";
+        SelectedTabIndex = 0;
+        Status = "Sinal da interface selecionada, sem ICMP e sem gravação. Inicie uma medição para salvar uma sessão de 60 s.";
+        RestartMonitoring();
+    }
+
+    private void RestartMonitoring()
+    {
+        if (!monitoringRequested || !CanReplaceSession) return;
+        monitoringCancellation?.Cancel();
+        Signal.BeginPreview();
+        if (SelectedInterface is not { State: WifiConnectionState.Connected } selected) return;
+        var cancellation = new CancellationTokenSource();
+        monitoringCancellation = cancellation;
+        monitoringTask = MonitorAfterAsync(monitoringTask, selected.Id, cancellation);
+    }
+
+    private async Task MonitorAfterAsync(Task previous, Guid id, CancellationTokenSource cancellation)
+    {
+        using (cancellation)
+        {
+            var token = cancellation.Token;
+            Task refreshTask = Task.CompletedTask;
+            try
+            {
+                await previous;
+                token.ThrowIfCancellationRequested();
+                refreshTask = RefreshSignalLoopAsync(id, token);
+                var began = clock.Capture();
+                while (true)
+                {
+                    var started = clock.Capture();
+                    WifiSnapshot snapshot;
+                    try { snapshot = await wifi.ReadAsync(id, token); }
+                    catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+                    catch (Exception ex) when (ex is not OutOfMemoryException)
+                    {
+                        snapshot = WifiSnapshot.Unavailable(id, started, clock.Capture(),
+                            new(IssueKind.AdapterError, "Wi-Fi", "Não foi possível consultar o adaptador."));
+                    }
+                    token.ThrowIfCancellationRequested();
+                    Signal.AcceptPreview(snapshot, clock.ElapsedSince(began.MonotonicTicks));
+                    var remaining = ProbeOptions.Interval - clock.ElapsedSince(started.MonotonicTicks);
+                    await Task.Delay(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero, token);
+                }
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+            finally
+            {
+                await refreshTask;
+                if (ReferenceEquals(monitoringCancellation, cancellation)) monitoringCancellation = null;
+            }
+        }
+    }
+
+    private async Task RefreshSignalLoopAsync(Guid id, CancellationToken token, List<WifiScanObservation>? scans = null)
+    {
+        if (signalRefresher is null) return;
+        try
+        {
+            while (true)
+            {
+                token.ThrowIfCancellationRequested();
+                var started = clock.Capture();
+                Signal.DescribeRefresh("Atualizando o sinal por varredura Wi-Fi… Pode elevar a latência.");
+                var result = await signalRefresher.RefreshAsync(id, token);
+                scans?.Add(result);
+                token.ThrowIfCancellationRequested();
+                Signal.DescribeRefresh(result.Completed ?
+                    $"Varredura confirmada às {result.CompletedAt.Utc.ToLocalTime():HH:mm:ss} · atualização a cada 5 s" :
+                    $"Varredura não confirmada: {result.Issue?.Kind} (código {result.Issue?.NativeCode?.ToString() ?? "n/a"}). O RSSI pode estar desatualizado.");
+                var remaining = TimeSpan.FromSeconds(5) - clock.ElapsedSince(started.MonotonicTicks);
+                await Task.Delay(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero, token);
+            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            if (!token.IsCancellationRequested)
+                Signal.DescribeRefresh("Não foi possível atualizar por varredura. O RSSI pode estar desatualizado.");
+        }
+    }
+
     public void Cancel()
     {
         if (Operation != ProbeOperation.Collecting) return;
@@ -188,10 +335,12 @@ public sealed class ProbeViewModel : ObservableObject
     public async Task<bool> RequestCloseAsync()
     {
         closing = true;
+        monitoringCancellation?.Cancel();
         RefreshState();
         if (Operation == ProbeOperation.Collecting) Cancel();
         else operationCancellation?.Cancel();
         await activeOperation;
+        await monitoringTask;
         if (!HasPendingSave) return true;
         closing = false;
         Status = "A janela permanece aberta: há uma sessão não salva. Escolha uma pasta e tente salvar novamente, ou descarte explicitamente.";
@@ -203,6 +352,7 @@ public sealed class ProbeViewModel : ObservableObject
     {
         if (IsBusy || closing) return Task.CompletedTask;
         Operation = next;
+        monitoringCancellation?.Cancel();
         Error = "";
         activeOperation = CompleteAsync(action);
         return activeOperation;
@@ -212,13 +362,19 @@ public sealed class ProbeViewModel : ObservableObject
     {
         using var cancellation = new CancellationTokenSource();
         operationCancellation = cancellation;
-        try { await action(cancellation.Token); }
+        try
+        {
+            if (!monitoringTask.IsCompleted) Status = "Aguardando a varredura em andamento antes de continuar…";
+            await monitoringTask;
+            await action(cancellation.Token);
+        }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { Status = "Operação cancelada."; }
         catch (Exception ex) { ShowError(ex); }
         finally
         {
             operationCancellation = null;
             Operation = ProbeOperation.Idle;
+            RestartMonitoring();
         }
     }
 
@@ -260,7 +416,9 @@ public sealed class ProbeViewModel : ObservableObject
     private void RefreshState()
     {
         Notify(nameof(IsBusy)); Notify(nameof(HasPendingSave)); Notify(nameof(CanReplaceSession)); Notify(nameof(CanEditFolder));
+        Notify(nameof(OperationLabel));
         RefreshCommand?.NotifyCanExecuteChanged(); StartCommand?.NotifyCanExecuteChanged(); OpenCommand?.NotifyCanExecuteChanged();
+        MonitorCommand?.NotifyCanExecuteChanged();
         ChooseFolderCommand?.NotifyCanExecuteChanged(); CancelCommand?.NotifyCanExecuteChanged(); RetrySaveCommand?.NotifyCanExecuteChanged();
         DiscardCommand?.NotifyCanExecuteChanged();
     }

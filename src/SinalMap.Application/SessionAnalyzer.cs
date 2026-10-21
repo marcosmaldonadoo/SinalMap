@@ -14,7 +14,12 @@ public sealed record SessionSummary(
     NumericSummary LatencyMilliseconds, NumericSummary RssiDbm,
     int PrimaryRssi, int AlternativeRssi, int OtherRssiSource,
     int Channels, int Frequencies, int CachedFrequencies, int BssidChanges,
-    IReadOnlyList<IssueCount> Issues, SessionContextSummary Context);
+    IReadOnlyList<IssueCount> Issues, SessionContextSummary Context)
+{
+    public bool ActiveWifiScanning { get; init; }
+    public int WifiScanAttempts { get; init; }
+    public int WifiScansCompleted { get; init; }
+}
 
 public static class SessionAnalyzer
 {
@@ -50,7 +55,12 @@ public static class SessionAnalyzer
             samples.Count(s => s.Wifi?.FrequencyKHz is not null),
             samples.Count(s => s.Wifi?.FrequencyKHz is not null &&
                 s.Wifi.FrequencySource == "WlanGetNetworkBssList:ulChCenterFrequency (cached)"),
-            session.BssidChanges.Count, issues, SessionContextSummary.FromSession(session));
+            session.BssidChanges.Count, issues, SessionContextSummary.FromSession(session))
+        {
+            ActiveWifiScanning = session.ActiveWifiScanning,
+            WifiScanAttempts = session.WifiScans?.Count ?? 0,
+            WifiScansCompleted = session.WifiScans?.Count(s => s.Completed) ?? 0
+        };
     }
 
     private static NumericSummary Describe(IEnumerable<double> values)
@@ -73,6 +83,11 @@ public static class SessionAnalyzer
             throw new InvalidDataException("Metadados do relógio monotônico inválidos.");
         if (session.Samples is null || session.BssidChanges is null)
             throw new InvalidDataException("Listas obrigatórias ausentes no JSON.");
+        if ((!session.ActiveWifiScanning && session.WifiScans is { Count: > 0 }) ||
+            session.WifiScans?.Any(scan => scan is null || scan.StartedAt is null || scan.CompletedAt is null ||
+            scan.CompletedAt.MonotonicTicks < scan.StartedAt.MonotonicTicks ||
+            scan.Completed == (scan.Issue is not null) || (scan.Issue is not null && !Enum.IsDefined(scan.Issue.Kind))) == true)
+            throw new InvalidDataException("Registro de varredura Wi-Fi inválido.");
         if (session.BssidChanges.Any(change => change is null || !Enum.IsDefined(change.Kind)))
             throw new InvalidDataException("Mudança de BSSID inválida no JSON.");
         var sequences = new HashSet<int>();

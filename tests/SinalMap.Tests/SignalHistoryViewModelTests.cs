@@ -10,6 +10,50 @@ namespace SinalMap.Tests;
 public sealed class SignalHistoryViewModelTests
 {
     [Fact]
+    public void Preview_has_a_bounded_recent_window_and_missing_readings_clear_the_value()
+    {
+        var clock = new ManualClock();
+        var model = new SignalHistoryViewModel();
+        model.BeginPreview();
+        for (var i = 0; i < 100; i++)
+            model.AcceptPreview(TestData.Wifi(clock) with { RssiSource = "WlanQueryInterface:rssi" }, TimeSpan.FromSeconds(i * 2));
+        Assert.Equal(30, model.Points.Count);
+        Assert.All(model.Points, p => Assert.InRange(p.Seconds, 0, 59));
+        model.AcceptPreview(WifiSnapshot.Unavailable(TestData.InterfaceId, clock.Capture(), clock.Capture(),
+            new(IssueKind.Busy, "Wi-Fi", "private")), TimeSpan.FromSeconds(200));
+        Assert.Equal("Indisponível", model.Value);
+        Assert.Null(model.Points.Last().RssiDbm);
+        Assert.Contains("andamento", model.ReadingStatus);
+        Assert.DoesNotContain("private", model.ReadingStatus);
+    }
+
+    [Fact]
+    public async Task Signal_is_published_before_slow_ICMP_without_changing_completed_samples()
+    {
+        var clock = new ManualClock();
+        var ping = new TaskCompletionSource<IcmpMeasurement>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var icmp = new FakeIcmp(clock) { OnSend = (_, _) => ping.Task };
+        var signal = Channel.CreateBounded<ProbeSample>(new BoundedChannelOptions(1) { AllowSynchronousContinuations = false });
+        var complete = Channel.CreateUnbounded<ProbeSample>(new() { AllowSynchronousContinuations = false });
+        var running = new ProbeRunner(new FakeWifi(clock), icmp, clock)
+            .RunAsync(TestData.Options, CancellationToken.None, complete.Writer, signal.Writer);
+        Assert.False(running.IsCompleted);
+        Assert.True(signal.Reader.TryRead(out var update));
+        Assert.NotNull(update.Wifi);
+        Assert.Null(update.Icmp);
+        Assert.False(complete.Reader.TryRead(out _));
+        signal.Writer.Complete();
+        ping.SetResult(TestData.Icmp(clock));
+        var session = await running.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(60, session.Samples.Count);
+        Assert.All(session.Samples, s => Assert.NotNull(s.Icmp));
+        complete.Writer.Complete();
+        var completed = new List<ProbeSample>();
+        await foreach (var sample in complete.Reader.ReadAllAsync()) completed.Add(sample);
+        Assert.Equal(session.Samples, completed.OrderBy(s => s.Sequence));
+    }
+
+    [Fact]
     public async Task Live_updates_are_ordered_and_an_older_completion_never_replaces_the_latest_reading()
     {
         var session = await SessionComparerTests.CreateSession(-60);

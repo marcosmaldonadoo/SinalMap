@@ -9,7 +9,10 @@ public enum ContextComparison { Same, Different, Unknown, VariedWithinSession }
 public sealed record SessionComparisonContext(
     ContextComparison Interface, ContextComparison Ssid, ContextComparison Bssid,
     ContextComparison Target, ContextComparison Channel, ContextComparison CachedFrequency,
-    ContextComparison RssiSource);
+    ContextComparison RssiSource)
+{
+    public ContextComparison ActiveScanning { get; init; }
+}
 
 public sealed record SessionComparison(
     SessionSummary First, SessionSummary Second, SessionComparisonContext Context,
@@ -37,13 +40,16 @@ public static class SessionComparer
             CompareValues(wifiA.Select(Channel), wifiB.Select(Channel)),
             CompareValues(wifiA.Select(Frequency), wifiB.Select(Frequency)),
             CompareValues(wifiA.Where(w => w.RssiDbm.HasValue).Select(RssiSource),
-                wifiB.Where(w => w.RssiDbm.HasValue).Select(RssiSource)));
+                wifiB.Where(w => w.RssiDbm.HasValue).Select(RssiSource)))
+        {
+            ActiveScanning = first.ActiveWifiScanning == second.ActiveWifiScanning ? ContextComparison.Same : ContextComparison.Different
+        };
 
         // Diferenças são B − A; contexto insuficiente não é substituído por valores presumidos.
-        var latency = AllSame(context.Interface, context.Ssid, context.Target)
+        var latency = AllSame(context.Interface, context.Ssid, context.Target, context.ActiveScanning)
             ? b.LatencyMilliseconds.Mean - a.LatencyMilliseconds.Mean : null;
         var rssi = AllSame(context.Interface, context.Ssid, context.Bssid, context.Channel,
-            context.CachedFrequency, context.RssiSource) ? b.RssiDbm.Mean - a.RssiDbm.Mean : null;
+            context.CachedFrequency, context.RssiSource, context.ActiveScanning) ? b.RssiDbm.Mean - a.RssiDbm.Mean : null;
         return new(a, b, context, latency, rssi);
     }
 

@@ -8,20 +8,20 @@ namespace SinalMap.Console.Probe;
 
 internal static class Program
 {
-    private const string Help = """
-        SinalMap — Fase 0: prova de coleta Wi-Fi para Windows (.NET 10)
+    private static readonly string Help = $"""
+        SinalMap — console {typeof(Program).Assembly.GetName().Version?.ToString(3)}: coleta Wi-Fi para Windows
 
         Listar interfaces:
-          dotnet run --project src/SinalMap.Console.Probe -- --list
+          ./SinalMap.Console.Probe.exe --list
 
         Analisar um JSON local (também funciona em Linux; resumo sem identificadores):
-          dotnet run --project src/SinalMap.Console.Probe -- --analyze <arquivo.json>
+          ./SinalMap.Console.Probe.exe --analyze <arquivo.json>
 
         Comparar duas coletas salvas (diferenças B − A, sem identificadores):
-          dotnet run --project src/SinalMap.Console.Probe -- --compare <coleta-a.json> <coleta-b.json>
+          ./SinalMap.Console.Probe.exe --compare <coleta-a.json> <coleta-b.json>
 
         Coletar 60 segundos (destino explícito; sem DNS nem destino público padrão):
-          dotnet run --project src/SinalMap.Console.Probe -- --target <IPv4> [--interface <GUID>] [--output <arquivo.json>]
+          ./SinalMap.Console.Probe.exe --target <IPv4> [--interface <GUID>] [--output <arquivo.json>]
 
         Há 60 posições planejadas: t=0..59 s, com timeout ICMP de 800 ms.
         Mais de uma interface conectada exige --interface. Ctrl+C salva a sessão parcial.

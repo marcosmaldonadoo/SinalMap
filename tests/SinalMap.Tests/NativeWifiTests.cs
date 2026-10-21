@@ -20,6 +20,7 @@ public sealed class NativeWifiTests
         Assert.Equal(24, Marshal.SizeOf<WlanRealtimeConnectionQualityHeader>());
         Assert.Equal(272, Marshal.SizeOf<WlanRealtimeConnectionQualityLinkInfo>());
         Assert.Equal(12, Marshal.OffsetOf<WlanRealtimeConnectionQualityLinkInfo>(nameof(WlanRealtimeConnectionQualityLinkInfo.Rssi)).ToInt32());
+        Assert.Equal(IntPtr.Size == 8 ? 40 : 32, Marshal.SizeOf<WlanNotificationData>());
         Assert.Equal(19u, (uint)WlanOpcode.RealtimeConnectionQuality);
         Assert.Equal(64, Marshal.OffsetOf<WlanBssEntry>(nameof(WlanBssEntry.InRegDomain)).ToInt32());
         Assert.Equal(80, Marshal.OffsetOf<WlanBssEntry>(nameof(WlanBssEntry.HostTimestamp)).ToInt32());

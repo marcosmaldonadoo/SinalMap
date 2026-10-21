@@ -48,6 +48,8 @@ internal static class SessionReportCommand
         foreach (var outcome in summary.IcmpOutcomes)
             output.WriteLine($"  {outcome.Outcome}: {outcome.Count}");
         WriteMetric("RTT em sucesso (ms)", summary.LatencyMilliseconds);
+        if (summary.ActiveWifiScanning)
+            output.WriteLine($"Varredura Wi-Fi ativa: {summary.WifiScansCompleted}/{summary.WifiScanAttempts} confirmações registradas. O RTT pode ter sido aumentado pelas varreduras.");
         output.WriteLine($"Wi-Fi conectado: {summary.ConnectedWifi}/{summary.Positions}; mudanças de BSSID registradas: {summary.BssidChanges}.");
         WriteMetric("RSSI registrado (dBm)", summary.RssiDbm);
         output.WriteLine($"Fontes RSSI: principal {summary.PrimaryRssi}; alternativa {summary.AlternativeRssi}; outra ou não identificada {summary.OtherRssiSource}.");

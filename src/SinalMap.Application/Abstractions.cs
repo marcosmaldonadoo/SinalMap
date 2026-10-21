@@ -15,6 +15,11 @@ public interface IIcmpProbe
         IPAddress target, Guid interfaceId, TimeSpan timeout, CancellationToken cancellationToken);
 }
 
+public interface IWifiSignalRefresher
+{
+    Task<WifiScanObservation> RefreshAsync(Guid interfaceId, CancellationToken cancellationToken);
+}
+
 public interface IProbeClock
 {
     long Frequency { get; }

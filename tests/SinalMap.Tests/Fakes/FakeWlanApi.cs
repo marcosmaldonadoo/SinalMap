@@ -34,6 +34,19 @@ internal sealed class FakeWlanApi : IWlanApi
         [new() { Id = TestData.InterfaceId, State = WlanInterfaceState.Connected }];
     public WlanBssEntry[] BssEntries { get; set; } = [Bss()];
     public TaskCompletionSource Closed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public uint ScanCode { get; set; }
+    public uint RegistrationCode { get; set; }
+    public Action<Guid>? OnScan { get; set; }
+    public WlanNotificationCallback? ScanCallback { get; private set; }
+    public List<uint> NotificationSources { get; } = [];
+    public int ScanCalls { get; private set; }
+    public uint Scan(SafeWlanHandle handle, Guid id) { ScanCalls++; OnScan?.Invoke(id); return ScanCode; }
+    public uint RegisterNotification(SafeWlanHandle handle, uint source, WlanNotificationCallback? callback)
+    {
+        NotificationSources.Add(source);
+        ScanCallback = callback;
+        return RegistrationCode;
+    }
 
     public uint OpenHandle(out uint negotiatedVersion, out nint handle)
     {

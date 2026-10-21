@@ -8,6 +8,200 @@ namespace SinalMap.Tests;
 public sealed class ProbeViewModelTests
 {
     [Fact]
+    public async Task Collection_waits_for_an_accepted_preview_scan_and_records_only_its_own_scan_results()
+    {
+        var refresher = new PendingRefresher();
+        var h = new Harness(signalRefresher: refresher);
+        await h.Model.RefreshAsync();
+        h.Model.StartMonitoring();
+        Assert.Equal(1, refresher.Calls);
+        var collection = h.Model.StartAsync();
+        Assert.False(collection.IsCompleted);
+        Assert.Empty(h.Icmp.Invocations);
+        var stamp = new ManualClock().Capture();
+        refresher.Pending.SetResult(new(stamp, stamp, true, null));
+        await collection.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(2, refresher.Calls);
+        Assert.Single(Assert.Single(h.Store.Sessions).WifiScans!);
+        Assert.Equal(60, h.Icmp.Invocations.Count);
+    }
+
+    private sealed class PendingRefresher : IWifiSignalRefresher
+    {
+        public int Calls { get; private set; }
+        public TaskCompletionSource<WifiScanObservation> Pending { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Task<WifiScanObservation> RefreshAsync(Guid interfaceId, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            if (++Calls == 1) return Pending.Task;
+            var stamp = new ManualClock().Capture();
+            return Task.FromResult(new WifiScanObservation(stamp, stamp, true, null));
+        }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Collection_records_scans_and_the_RTT_notice_even_when_refresh_fails(bool succeeds)
+    {
+        var refresher = new Refresher { Succeeds = succeeds };
+        var h = new Harness(signalRefresher: refresher);
+        await h.Model.RefreshAsync();
+        await h.Model.StartAsync();
+        var saved = Assert.Single(h.Store.Sessions);
+        Assert.True(saved.ActiveWifiScanning);
+        Assert.NotEmpty(saved.WifiScans!);
+        Assert.All(saved.WifiScans!, scan => Assert.Equal(succeeds, scan.Completed));
+        Assert.Contains("RTT", h.Model.Result!.ScanNotice);
+        Assert.Equal(60, h.Icmp.Invocations.Count);
+    }
+
+    private sealed class Refresher : IWifiSignalRefresher
+    {
+        public bool Succeeds { get; init; }
+        public Task<WifiScanObservation> RefreshAsync(Guid interfaceId, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            var stamp = new ManualClock().Capture();
+            return Task.FromResult(new WifiScanObservation(stamp, stamp, Succeeds,
+                Succeeds ? null : new(IssueKind.ObservationTimeout, "WlanScan", "synthetic")));
+        }
+    }
+    [Fact]
+    public async Task Gateway_suggestion_follows_the_selected_interface_until_the_target_is_edited()
+    {
+        var h = new Harness(presetTarget: false);
+        h.Wifi.Items = [h.Wifi.Items[0] with { Ipv4Gateway = "192.0.2.1" }];
+        await h.Model.RefreshAsync();
+        Assert.Equal("192.0.2.1", h.Model.TargetText);
+        Assert.Contains("Gateway", h.Model.TargetHint);
+        h.Model.SelectedInterface = new(Guid.NewGuid(), "other", WifiConnectionState.Connected) { Ipv4Gateway = "198.51.100.1" };
+        Assert.Equal("198.51.100.1", h.Model.TargetText);
+        h.Model.SelectedInterface = null;
+        Assert.Empty(h.Model.TargetText);
+        h.Model.TargetText = "203.0.113.8";
+        h.Model.SelectedInterface = h.Wifi.Items[0];
+        await h.Model.RefreshAsync();
+        Assert.Equal("203.0.113.8", h.Model.TargetText);
+        Assert.Empty(h.Icmp.Invocations);
+    }
+
+    [Fact]
+    public async Task Monitoring_shows_RSSI_without_a_target_without_ICMP_and_without_saving()
+    {
+        var h = new Harness(presetTarget: false);
+        var observed = Signal();
+        h.Wifi.OnRead = _ => Task.FromResult(TestData.Wifi(new ManualClock()) with { RssiSource = "WlanQueryInterface:rssi", RssiDbm = -61 });
+        h.Model.Signal.PropertyChanged += (_, _) => { if (h.Model.Signal.Value == "-61 dBm") observed.TrySetResult(); };
+        await h.Model.RefreshAsync();
+        h.Model.StartMonitoring();
+        await observed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal("MONITORANDO", h.Model.Signal.StateLabel);
+        Assert.Empty(h.Model.TargetText);
+        Assert.Empty(h.Icmp.Invocations);
+        Assert.Empty(h.Store.Sessions);
+        Assert.Null(h.Model.Result);
+        Assert.False(h.Model.IsBusy);
+        Assert.True(await h.Model.RequestCloseAsync());
+    }
+
+    [Fact]
+    public async Task Starting_a_test_waits_for_preview_cancellation_and_keeps_the_saved_result()
+    {
+        var h = new Harness();
+        var entered = Signal();
+        var cancelled = Signal();
+        var calls = 0;
+        h.Wifi.OnRead = async token =>
+        {
+            if (++calls == 1)
+            {
+                entered.TrySetResult();
+                try { await Task.Delay(Timeout.Infinite, token); }
+                finally { cancelled.TrySetResult(); }
+            }
+            return TestData.Wifi(new ManualClock()) with { RssiSource = "WlanQueryInterface:rssi" };
+        };
+        await h.Model.RefreshAsync();
+        h.Model.StartMonitoring();
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await h.Model.StartAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.True(cancelled.Task.IsCompleted);
+        Assert.Equal(60, h.Icmp.Invocations.Count);
+        Assert.Equal(61, calls);
+        Assert.Equal("HISTÓRICO", h.Model.Signal.StateLabel);
+        Assert.Equal(60, Assert.Single(h.Store.Sessions).Samples.Count);
+        Assert.True(await h.Model.RequestCloseAsync());
+    }
+
+    [Fact]
+    public async Task Changing_interface_discards_a_late_preview_and_closing_waits_for_the_reader()
+    {
+        var h = new Harness();
+        var first = new TaskCompletionSource<WifiSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var second = Signal();
+        var other = new WifiInterfaceInfo(Guid.NewGuid(), "other", WifiConnectionState.Connected);
+        var calls = 0;
+        var leaked = false;
+        h.Wifi.OnRead = async token =>
+        {
+            if (++calls == 1) return await first.Task;
+            return TestData.Wifi(new ManualClock(), other.Id) with { RssiSource = "WlanQueryInterface:rssi", RssiDbm = -70 };
+        };
+        h.Model.Signal.PropertyChanged += (_, _) =>
+        {
+            leaked |= h.Model.Signal.Value == "-30 dBm";
+            if (h.Model.Signal.Value == "-70 dBm") second.TrySetResult();
+        };
+        await h.Model.RefreshAsync();
+        h.Model.StartMonitoring();
+        h.Model.SelectedInterface = other;
+        Assert.Equal(1, calls);
+        first.SetResult(TestData.Wifi(new ManualClock()) with { RssiSource = "WlanQueryInterface:rssi", RssiDbm = -30 });
+        await second.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.False(leaked);
+        Assert.Equal("-70 dBm", h.Model.Signal.Value);
+        Assert.Single(h.Model.Signal.Points);
+        Assert.True(await h.Model.RequestCloseAsync());
+        Assert.Empty(h.Icmp.Invocations);
+    }
+
+    [Fact]
+    public async Task Opening_history_stops_monitoring_and_live_command_can_resume_without_packets()
+    {
+        var h = new Harness();
+        await h.Model.RefreshAsync();
+        h.Model.StartMonitoring();
+        await h.Model.OpenAsync("local.json");
+        Assert.Equal("HISTÓRICO", h.Model.Signal.StateLabel);
+        Assert.NotNull(h.Model.Result);
+        await h.Model.MonitorCommand.ExecuteAsync();
+        Assert.Equal("MONITORANDO", h.Model.Signal.StateLabel);
+        Assert.Null(h.Model.Result);
+        Assert.Empty(h.Model.SavedPath);
+        Assert.Empty(h.Icmp.Invocations);
+        Assert.True(await h.Model.RequestCloseAsync());
+    }
+
+    [Fact]
+    public async Task Closing_waits_for_an_inflight_preview_and_does_not_publish_its_late_result()
+    {
+        var h = new Harness(presetTarget: false);
+        var pending = new TaskCompletionSource<WifiSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        h.Wifi.OnRead = _ => pending.Task;
+        await h.Model.RefreshAsync();
+        h.Model.StartMonitoring();
+        var close = h.Model.RequestCloseAsync();
+        Assert.False(close.IsCompleted);
+        pending.SetResult(TestData.Wifi(new ManualClock()) with { RssiSource = "WlanQueryInterface:rssi" });
+        Assert.True(await close.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.Empty(h.Model.Signal.Points);
+        Assert.Empty(h.Icmp.Invocations);
+        Assert.Empty(h.Store.Sessions);
+        Assert.False(h.Model.MonitorCommand.CanExecute(null));
+    }
+
+    [Fact]
     public async Task Signal_is_published_before_the_session_finishes_and_unavailable_updates_do_not_reuse_it()
     {
         var h = new Harness();
@@ -218,22 +412,24 @@ public sealed class ProbeViewModelTests
     private sealed class Harness
     {
         public Monitor Wifi { get; }
+        public FakeIcmp Icmp { get; }
         public Store Store { get; } = new();
         public Dialogs Dialogs { get; } = new();
         public ProbeViewModel Model { get; }
         public int ReadCalls { get; private set; }
         public bool ReadFailure { get; set; }
-        public Harness()
+        public Harness(bool presetTarget = true, IWifiSignalRefresher? signalRefresher = null)
         {
             var clock = new ManualClock();
             Wifi = new(clock);
-            Model = new(Wifi, new FakeIcmp(clock), clock, Store, async (_, _) =>
+            Icmp = new(clock);
+            Model = new(Wifi, Icmp, clock, Store, async (_, _) =>
             {
                 ReadCalls++;
                 if (ReadFailure) throw new InvalidDataException("synthetic private text");
                 return await TestData.Session();
-            }, Dialogs, Path.Combine(Path.GetTempPath(), "sinalmap-simulated"));
-            Model.TargetText = "192.0.2.1";
+            }, Dialogs, Path.Combine(Path.GetTempPath(), "sinalmap-simulated"), signalRefresher: signalRefresher);
+            if (presetTarget) Model.TargetText = "192.0.2.1";
         }
     }
 

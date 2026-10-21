@@ -6,9 +6,13 @@ Extensão da janela técnica solicitada pelo responsável em 2026-10-20, com foc
 
 A aba **Sinal** mostra a última leitura de RSSI da interface selecionada, em dBm, sua fonte, a posição e um gráfico das leituras concluídas. O número não é um alvo ou valor de demonstração: pode permanecer constante ou variar conforme o driver. Não há conversão de qualidade percentual em RSSI.
 
-Continuam valendo as fontes já existentes: `WlanQueryInterface:rssi` e a alternativa restrita a um único enlace não MLO. Não foram adicionadas novas consultas nativas, chamadas a `netsh`, mudanças de permissões, tráfego externo ou interpretação de PHY/MIMO/largura de canal neste incremento de sinal. O formato JSON permanece `schemaVersion=1`, sem novos campos obrigatórios. Arquivos anteriores podem ser abertos para ver o histórico.
+O monitoramento contínuo solicitado posteriormente inicia ao abrir a janela e selecionar uma interface conectada. Usa as mesmas consultas Wi-Fi, aproximadamente uma vez por segundo, sem destino IPv4, ICMP ou gravação. Mantém até 60 observações dos últimos 60 s, com o eixo relativo ao início dessa janela recente. O horário mostrado é o término da consulta do Windows; não comprova nova recepção pelo rádio. A fonte utilizada e os motivos de ausência ficam explícitos, sem manter um valor antigo como leitura atual.
 
-A sessão mantém 60 posições em uma janela de 60 s, com ICMP para o IPv4 explicitamente informado e checagem de rota antes de cada envio. O ponto é publicado quando as operações daquela posição terminam; não representa uma leitura instantânea a cada quadro recebido pelo rádio.
+O monitor é cancelado e aguardado antes de iniciar coleta ou abrir um arquivo; a troca de interface descarta conclusões tardias da anterior. A leitura nativa mantém seu orçamento de 750 ms e seu bloqueio contra sobreposição, inclusive se o RPC retornar após o prazo. Ao fechar, a janela cancela o monitor. Resultados completos e arquivos abertos permanecem no modo histórico; **Sinal ao vivo** retoma o monitor sem teste, limpando somente a apresentação do resultado anterior.
+
+Continuam valendo as fontes em dBm já existentes: `WlanQueryInterface:rssi` e `realtime_connection_quality`, restrita a um único enlace não MLO. A correção posterior do RSSI estático prioriza a consulta em tempo real na janela e usa `WlanScan` com notificações ACM a cada 5 s, também nos testes, conforme autorização do responsável. O pedido pode gerar probe requests e elevar a latência; não altera permissões, rotas ou configurações do rádio. Não há conversão percentual, chamadas a `netsh` ou interpretação de PHY/MIMO/largura de canal. O formato permanece `schemaVersion=1`, com os campos opcionais `activeWifiScanning` e `wifiScans`; arquivos anteriores continuam aceitos. Consulte o [diagnóstico físico e os limites](correcao-rssi-estatico.md).
+
+A sessão mantém 60 posições em uma janela de 60 s, com ICMP para o IPv4 conferido pelo usuário e checagem de rota antes de cada envio. A janela sugere o gateway IPv4 da interface selecionada quando há um único candidato; a sugestão é editável e não inicia tráfego. O ponto de sinal é publicado quando a consulta Wi-Fi termina, sem aguardar ICMP; não representa uma leitura instantânea a cada quadro recebido pelo rádio. A amostra completa continua aguardando ambas as operações antes de ser persistida.
 
 ## Integridade do gráfico
 
@@ -21,9 +25,11 @@ A sessão mantém 60 posições em uma janela de 60 s, com ICMP para o IPv4 expl
 
 ## Publicação e verificações
 
-`ProbeRunner` aceita um `ChannelWriter<ProbeSample>` opcional. A publicação usa `TryWrite`, sem aguardar a janela. A apresentação cria um canal sem continuações síncronas, consome na thread gráfica e encerra esse consumo antes de concluir a operação. Canal cheio ou fechado não impede a aquisição; a sessão retornada continua sendo a fonte completa para persistência e histórico final.
+`ProbeRunner` aceita canais opcionais distintos para amostras completas (`liveSamples`) e projeções de sinal (`signalUpdates`). A projeção é um `ProbeSample` com Wi-Fi concluído e ICMP nulo, usada somente para apresentação; não é gravada. A publicação usa `TryWrite`, sem aguardar a janela. A apresentação cria um canal sem continuações síncronas, consome na thread gráfica e encerra esse consumo antes de concluir a operação. Canal cheio ou fechado não impede a aquisição; a sessão retornada continua sendo a fonte completa para persistência e histórico final.
 
 Ambiente de verificação: Windows x64, SDK .NET 10.0.402 e runtime .NET 10.0.13. Compilação Release com 0 avisos/erros e **184 testes aprovados**, incluindo 11 novos casos sobre publicação, canal cheio/fechado, atualização antes do fim da sessão, ausência, privacidade, ordem de conclusões e interrupção da linha. Os testes novos usam adaptadores e registros simulados.
+
+A revisão de monitoramento contínuo e gateway tem **200 testes aprovados**, incluindo leitura sem alvo/ICMP/gravação, cancelamento antes da coleta e no fechamento, descarte de resposta tardia na troca de interface, retorno do histórico ao monitor, janela recente limitada, ausência explícita, publicação anterior ao ICMP e descoberta de gateway por GUID, sem escolher arbitrariamente entre múltiplos candidatos. Esses testes são simulados e não comprovam precisão do rádio.
 
 ## Inspeção física em 2026-10-20
 

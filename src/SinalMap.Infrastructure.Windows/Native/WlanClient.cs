@@ -6,6 +6,7 @@ internal sealed class WlanClient : IDisposable
 {
     private readonly IWlanApi api;
     private readonly SafeWlanHandle handle;
+    private WlanNotificationCallback? scanCallback;
 
     internal WlanClient(IWlanApi api)
     {
@@ -45,6 +46,43 @@ internal sealed class WlanClient : IDisposable
         if (size < Marshal.SizeOf<T>())
             throw NativeWifiException.InvalidData($"WlanQueryInterface:{opcode}", "Truncated native response.");
         return Marshal.PtrToStructure<T>(pointer);
+    }
+
+    internal async Task WaitForScanAsync(Guid id, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var completion = new TaskCompletionSource<SinalMap.Domain.ProbeIssue?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var requested = 0;
+        WlanNotificationCallback callback = (ref WlanNotificationData data, nint _) =>
+        {
+            if (Volatile.Read(ref requested) == 0 || data.Source != 8 || data.InterfaceId != id) return;
+            if (data.Code == 7) completion.TrySetResult(null);
+            else if (data.Code == 8)
+            {
+                var reason = data.Data != 0 && data.DataSize >= 4 ? unchecked((uint)Marshal.ReadInt32(data.Data)) : (uint?)null;
+                completion.TrySetResult(new(SinalMap.Domain.IssueKind.NativeError, "WlanScan",
+                    "O Windows notificou falha na varredura Wi-Fi.", reason));
+            }
+        };
+        scanCallback = callback;
+        var registration = api.RegisterNotification(handle, 8, callback);
+        if (registration != 0) throw new NativeWifiException(registration, "WlanRegisterNotification");
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Volatile.Write(ref requested, 1);
+            var code = api.Scan(handle, id);
+            if (code != 0) throw new NativeWifiException(code, "WlanScan");
+            // O cancelamento não interrompe uma varredura já aceita pelo rádio. Aguardar a conclusão ou o prazo.
+            var issue = await completion.Task.WaitAsync(timeout).ConfigureAwait(false);
+            if (issue is not null) throw new NativeWifiException(issue);
+        }
+        finally
+        {
+            // Nunca desregistrar dentro do callback: a API espera callbacks ativos retornarem.
+            api.RegisterNotification(handle, 0, null);
+            GC.KeepAlive(callback);
+        }
     }
 
     internal int QuerySingleLinkRealtimeRssi(Guid id)
@@ -106,5 +144,9 @@ internal sealed class WlanClient : IDisposable
             throw NativeWifiException.InvalidData(operation, "Native API returned a null buffer on success.");
     }
 
-    public void Dispose() => handle.Dispose();
+    public void Dispose()
+    {
+        handle.Dispose();
+        GC.KeepAlive(scanCallback);
+    }
 }
