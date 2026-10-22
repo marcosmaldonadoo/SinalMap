@@ -25,6 +25,8 @@ public partial class App : System.Windows.Application
                 : "A operação falhou. Confira a interface Wi-Fi e tente novamente.",
             signalRefresher: new WindowsWifiSignalRefresher(clock));
         window.DataContext = viewModel;
+        window.FloorPlan = new FloorPlanViewModel(viewModel, new JsonFloorPlanProjectStore(),
+            new FloorPlanDialogs(() => window.ActiveFloorPlanWindow ?? window), new FloorPlanImageLoader());
         MainWindow = window;
         window.Show();
     }

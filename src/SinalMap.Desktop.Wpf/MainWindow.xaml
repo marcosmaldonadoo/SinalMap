@@ -54,6 +54,7 @@
                 </StackPanel>
             </Grid>
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="Planta da loja" Click="OnOpenFloorPlan" IsEnabled="{Binding CanReplaceSession}" Margin="0,0,8,0" ToolTip="Importar uma planta e marcar o roteador e os pontos de medição" />
                 <Button Command="{Binding MonitorCommand}" Margin="0,0,8,0" Style="{StaticResource QuietButton}"
                         ToolTip="Voltar ao monitoramento sem gravar uma coleta (Ctrl+L)" AutomationProperties.Name="Sinal ao vivo">
                     <StackPanel Orientation="Horizontal">
