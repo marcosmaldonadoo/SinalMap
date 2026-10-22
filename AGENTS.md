@@ -6,7 +6,9 @@ Escreva toda documentação em português brasileiro, incluindo README, guias, i
 
 ## Escopo atual
 
-Em 2026-10-20, após revisar a proposta e executar nova coleta física, o responsável autorizou o avanço para a janela WPF técnica de `docs/proposta-fase-1-wpf.md`, aceitando os limites do parecer da Fase 0. O escopo atual inclui o console existente e essa janela: seleção de interface/destino, coleta, cancelamento com salvamento parcial e análise local de JSON. Plantas, pontos de survey e mapas de calor continuam fora do escopo. Casos físicos ainda não exercitados permanecem pendentes; o aceite não os transforma em testes aprovados.
+Em 2026-10-20, após revisar a proposta e executar nova coleta física, o responsável autorizou o avanço para a janela WPF técnica de `docs/proposta-fase-1-wpf.md`, aceitando os limites do parecer da Fase 0. O escopo inclui o console existente e essa janela: seleção de interface/destino, coleta, cancelamento com salvamento parcial e análise local de JSON.
+
+Em 2026-10-22, após revisar a implementação local solicitada, o responsável autorizou lançar a atualização com foto da planta, roteador e pontos marcados manualmente, vínculo das coletas e cores/valores das medições reais nos pontos. Também solicitou a distribuição da janela em um único executável portátil e autocontido para Windows x64. O projeto de planta tem formato próprio; o JSON de coleta mantém seu formato. Simulação de propagação, interpolação entre pontos e mapas de calor continuam fora do escopo. Casos físicos ainda não exercitados permanecem pendentes; o aceite não os transforma em testes aprovados.
 
 ## Integridade das observações
 

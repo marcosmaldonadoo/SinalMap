@@ -6,17 +6,17 @@
 
 A logo apresenta a identidade visual usada na janela técnica.
 
-**SinalMap 1.1.0** — aplicativo open source de monitoramento e coleta Wi-Fi para Windows. Inclui a janela WPF e o console, com Native Wi-Fi API, ICMP, JSON local e análise descritiva.
+**SinalMap 1.2.0** — aplicativo open source de monitoramento e coleta Wi-Fi para Windows. Inclui planta da loja com medições por ponto, janela WPF e console, com Native Wi-Fi API, ICMP, JSON local e análise descritiva.
 
 A documentação do projeto é mantida em **português brasileiro**. A versão em inglês será preparada em uma etapa futura.
 
-O objetivo é inspecionar os dados fornecidos pelo Windows e pelos drivers sem inventar medições. A janela técnica permite operar a coleta existente. Importação de plantas, marcação de pontos e mapas de calor ficam para uma proposta posterior.
+O objetivo é inspecionar os dados fornecidos pelo Windows e pelos drivers sem inventar medições. A janela permite acompanhar o sinal, salvar coletas e relacioná-las a posições marcadas manualmente em uma foto da planta. As cores representam as medições nos pontos; não há estimativa entre eles ou mapa de calor.
 
 ## Baixar e abrir no Windows
 
-Baixe **SinalMap-v1.1.0-win-x64.zip** na [release v1.1.0](https://github.com/marcosmaldonadoo/SinalMap/releases/tag/v1.1.0), extraia toda a pasta e abra **SinalMap.Desktop.Wpf.exe**. O pacote inclui o .NET necessário; não exige SDK ou instalação separada do runtime. Preserve os arquivos ao lado do executável.
+Baixe **[SinalMap-v1.2.0-win-x64.exe](https://github.com/marcosmaldonadoo/SinalMap/releases/download/v1.2.0/SinalMap-v1.2.0-win-x64.exe)** na [release v1.2.0](https://github.com/marcosmaldonadoo/SinalMap/releases/tag/v1.2.0) e abra o arquivo. A aplicação gráfica é um executável único e portátil, com .NET incluído; não exige extrair um ZIP, manter DLLs ao lado ou instalar SDK/runtime separadamente.
 
-O pacote **SinalMap-Console-v1.1.0-win-x64.zip** contém a ferramenta de linha de comando. Os pacotes são portáteis para Windows x64, sem instalador ou assinatura digital. Os [passos de uso](docs/como-executar.md), as [notas da versão](docs/releases/v1.1.0.md) e os [limites da validação](docs/validacao-wpf.md) detalham o escopo.
+O pacote **SinalMap-Console-v1.2.0-win-x64.zip** contém a ferramenta de linha de comando e continua exigindo a extração de toda a pasta. Os downloads são para Windows x64, sem instalador ou assinatura digital. Os [passos de uso](docs/como-executar.md), as [notas da versão](docs/releases/v1.2.0.md) e o [guia da planta](docs/planta-pontos-medicao.md) detalham o escopo e os limites.
 
 ## Pré-requisitos
 
@@ -41,17 +41,17 @@ No Linux, restaure, compile e teste `tests/SinalMap.Tests/SinalMap.Tests.csproj`
 
 As dependências externas são usadas somente pelo projeto de testes: xUnit e Microsoft.NET.Test.Sdk. Os executáveis usam .NET, WPF e as APIs do Windows, sem biblioteca externa de MVVM.
 
-Para preparar os dois pacotes portáteis e os hashes SHA-256 no Windows:
+Para preparar o executável único, o ZIP do console e os hashes SHA-256 no Windows:
 
 ```powershell
 ./scripts/Publish-Release.ps1
 ```
 
-Os ZIPs ficam em `artifacts/releases/1.1.0/`, fora do controle de versão. O script recusa sobrescrever pacotes existentes; use `-ArtifactRoot` para gerar em outra pasta.
+Os downloads ficam em `artifacts/releases/1.2.0/`, fora do controle de versão. O script verifica que a publicação WPF produziu somente um `.exe`, sem arquivos de suporte externos, e recusa sobrescrever downloads existentes; use `-ArtifactRoot` para gerar em outra pasta. O perfil `src/SinalMap.Desktop.Wpf/Properties/PublishProfiles/Portable-win-x64.pubxml` usa publicação autocontida, bibliotecas nativas incluídas, compressão e nenhuma remoção de código por trimming. O CI também verifica essa distribuição no Windows.
 
 ## Abrir a janela técnica no Windows
 
-Esta seção descreve a interface distribuída na versão 1.1.0.
+Esta seção descreve a interface distribuída na versão 1.2.0.
 
 ```powershell
 dotnet run --project src/SinalMap.Desktop.Wpf -c Release
@@ -82,6 +82,12 @@ dotnet run --project src/SinalMap.Desktop.Wpf -c Release -- --software-rendering
 ```
 
 Essa opção usa renderização por software e não modifica configurações do Windows.
+
+## Planta da loja e medições por ponto
+
+No botão **Planta da loja**, importe um PNG/JPEG, marque o roteador, crie e nomeie pontos e use **Medir neste ponto · 60 s**. Leve o notebook até a posição selecionada antes de iniciar. O projeto `*.sinalmap-planta.json` inclui a imagem e as marcações, preservando o vínculo de cada ponto com seu JSON original. Consulte o [guia e os limites da planta](docs/planta-pontos-medicao.md). Abra cada projeto em uma única instância por vez para evitar substituir alterações de outra cópia.
+
+Os pontos mostram cores e valores do RSSI real, com legenda em dBm, leitura temporária **Ao vivo** durante a coleta e média da última sessão salva ao terminar. Posições não medidas e dados indisponíveis ficam neutros. As cores representam apenas os pontos observados, sem estimar a cobertura entre eles.
 
 ## Executar no Windows
 

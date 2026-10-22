@@ -22,6 +22,11 @@
     <SolidColorBrush x:Key="WarningInk" Color="#80550C" />
     <SolidColorBrush x:Key="WarningSurface" Color="#FFF7E8" />
     <SolidColorBrush x:Key="WarningBorder" Color="#EDDDC0" />
+    <SolidColorBrush x:Key="SignalStrong" Color="#30B56B" />
+    <SolidColorBrush x:Key="SignalGood" Color="#91C83D" />
+    <SolidColorBrush x:Key="SignalModerate" Color="#F2BE3C" />
+    <SolidColorBrush x:Key="SignalWeak" Color="#E67D2C" />
+    <SolidColorBrush x:Key="SignalVeryWeak" Color="#C8424A" />
     <SolidColorBrush x:Key="ScopeSurface" Color="#112630" />
     <SolidColorBrush x:Key="ScopeGrid" Color="#2A414C" />
     <SolidColorBrush x:Key="ScopeText" Color="#B4C8D2" />

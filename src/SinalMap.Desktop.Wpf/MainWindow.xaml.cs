@@ -10,7 +10,18 @@ public partial class MainWindow : Window
 {
     private bool closeInProgress;
     private bool allowClose;
+    public FloorPlanViewModel? FloorPlan { get; set; }
+    public Window? ActiveFloorPlanWindow { get; private set; }
     public MainWindow() => InitializeComponent();
+
+    private void OnOpenFloorPlan(object sender, RoutedEventArgs e)
+    {
+        if (FloorPlan is null) return;
+        var window = new FloorPlanWindow { DataContext = FloorPlan, Owner = this };
+        ActiveFloorPlanWindow = window;
+        try { window.ShowDialog(); }
+        finally { ActiveFloorPlanWindow = null; }
+    }
 
     private void OnSignalHistoryChanged(object sender, DataTransferEventArgs e)
     {
@@ -36,6 +47,7 @@ public partial class MainWindow : Window
         closeInProgress = true;
         try
         {
+            if (FloorPlan is { RequiresCloseReview: true } && !await FloorPlan.CanCloseAsync()) return;
             if (await vm.RequestCloseAsync())
             {
                 allowClose = true;

@@ -1,0 +1,150 @@
+<Window x:Class="SinalMap.Desktop.Wpf.FloorPlanWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:SinalMap.Desktop.Wpf.Controls"
+        xmlns:services="clr-namespace:SinalMap.Desktop.Wpf.Services"
+        Title="SinalMap — planta da loja" Width="1280" Height="860" MinWidth="1000" MinHeight="700"
+        Background="{StaticResource Canvas}" Foreground="{StaticResource Ink}" FontFamily="{StaticResource InterfaceFont}" FontSize="{StaticResource TextBody}"
+        WindowStartupLocation="CenterOwner" UseLayoutRounding="True" Closing="OnClosing">
+    <Window.Resources>
+        <services:FloorPlanImageConverter x:Key="PlanImage" />
+        <services:SignalVisualBrushConverter x:Key="SignalBrush" />
+    </Window.Resources>
+    <Window.InputBindings><KeyBinding Key="S" Modifiers="Control" Command="{Binding SaveCommand}" /></Window.InputBindings>
+    <Grid Margin="24,20,24,16">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <Grid Margin="0,0,0,16">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <StackPanel><TextBlock Text="PLANTA DA LOJA" Style="{StaticResource Eyebrow}" />
+                <TextBlock Text="Cada medição no seu lugar" FontSize="{StaticResource TextHeading}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                <TextBlock Text="Importe a foto, marque o roteador e vá até o ponto escolhido com o notebook." Style="{StaticResource Caption}" />
+            </StackPanel>
+            <WrapPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                <Button Content="Importar foto…" Command="{Binding ImportCommand}" Margin="0,0,8,0" />
+                <Button Content="Abrir projeto…" Command="{Binding OpenCommand}" Margin="0,0,8,0" />
+                <Button Content="Salvar projeto" Command="{Binding SaveCommand}" Style="{StaticResource PrimaryButton}" ToolTip="Salvar foto, marcações e vínculos (Ctrl+S)" />
+            </WrapPanel>
+        </Grid>
+        <Border Grid.Row="1" Background="{StaticResource Surface}" CornerRadius="{StaticResource ControlRadius}" Padding="12" Margin="0,0,0,16">
+            <StackPanel><TextBlock Text="{Binding Status}" TextWrapping="Wrap" FontSize="{StaticResource TextSmall}" />
+                <TextBlock Text="{Binding Error}" TextWrapping="Wrap" Foreground="{StaticResource ErrorInk}" Margin="0,4,0,0" Visibility="{Binding HasError, Converter={StaticResource BoolVisibility}}" />
+            </StackPanel>
+        </Border>
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="24" /><ColumnDefinition Width="304" /></Grid.ColumnDefinitions>
+            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <Border Background="{StaticResource Surface}" CornerRadius="{StaticResource ControlRadius}" Padding="12,4" Margin="0,0,0,8"
+                        Visibility="{Binding HasProject, Converter={StaticResource BoolVisibility}}">
+                    <DockPanel>
+                        <CheckBox Content="Mostrar valores" IsChecked="{Binding ShowPointResults}" DockPanel.Dock="Right" VerticalContentAlignment="Center" MinHeight="44" Margin="16,0,0,0" FontSize="{StaticResource TextSmall}" />
+                        <StackPanel VerticalAlignment="Center"><TextBlock Text="Medições reais na planta" FontSize="{StaticResource TextSection}" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding VisualSummary}" Style="{StaticResource Caption}" FontSize="{StaticResource TextMetadata}" Margin="0,4,0,0" /></StackPanel>
+                    </DockPanel>
+                </Border>
+                <Grid Grid.Row="1">
+                    <controls:FloorPlanCanvas x:Name="PlanCanvas" Image="{Binding ImageBytes, Converter={StaticResource PlanImage}}"
+                        Router="{Binding Router}" Points="{Binding Points}" SelectedPointId="{Binding SelectedPointId}"
+                        PointFeedback="{Binding PointFeedback}" ShowPointResults="{Binding ShowPointResults}"
+                        CollectionPointId="{Binding CollectionPointId}" LiveRssiDbm="{Binding LiveRssiDbm}"
+                        PlacementMode="{Binding PlacementMode}" IsPlacementEnabled="{Binding CanEdit}"
+                        PositionChosen="OnPositionChosen" PointSelected="OnPointSelected" PreviewKeyDown="OnCanvasKeyDown"
+                        AutomationProperties.Name="Planta da loja com roteador e pontos de medição" />
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="380" Margin="32">
+                        <StackPanel.Style><Style TargetType="StackPanel"><Style.Triggers>
+                            <DataTrigger Binding="{Binding HasProject}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                        </Style.Triggers></Style></StackPanel.Style>
+                        <TextBlock Text="Comece pela planta" FontSize="{StaticResource TextSummary}" FontWeight="SemiBold" TextAlignment="Center" />
+                        <TextBlock Text="Uma foto ou imagem da loja vira a referência para marcar suas coletas." Style="{StaticResource Caption}" TextAlignment="Center" Margin="0,12,0,20" />
+                        <Button Content="Escolher foto da planta…" Command="{Binding ImportCommand}" Style="{StaticResource PrimaryButton}" />
+                        <TextBlock Text="PNG ou JPEG · arquivo local · até 20 MB" Style="{StaticResource Caption}" FontSize="{StaticResource TextMetadata}" TextAlignment="Center" Margin="0,12,0,0" />
+                    </StackPanel>
+                </Grid>
+                <Border Grid.Row="2" Background="{StaticResource Surface}" CornerRadius="{StaticResource ControlRadius}" Padding="12" Margin="0,8,0,0"
+                        Visibility="{Binding HasProject, Converter={StaticResource BoolVisibility}}">
+                    <StackPanel><TextBlock Text="{Binding PlacementHint}" TextWrapping="Wrap" FontSize="{StaticResource TextSmall}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding LegendCaption}" Style="{StaticResource Caption}" FontSize="{StaticResource TextMetadata}" Margin="0,8,0,8" />
+                        <UniformGrid Columns="5">
+                            <StackPanel Orientation="Horizontal"><Rectangle Width="10" Height="10" Fill="{StaticResource SignalStrong}" Margin="0,0,6,0" /><TextBlock Text="≥ −50" FontFamily="{StaticResource MeasurementFont}" FontSize="{StaticResource TextMetadata}" /></StackPanel>
+                            <StackPanel Orientation="Horizontal"><Rectangle Width="10" Height="10" Fill="{StaticResource SignalGood}" Margin="0,0,6,0" /><TextBlock Text="−60 a &lt; −50" FontFamily="{StaticResource MeasurementFont}" FontSize="{StaticResource TextMetadata}" /></StackPanel>
+                            <StackPanel Orientation="Horizontal"><Rectangle Width="10" Height="10" Fill="{StaticResource SignalModerate}" Margin="0,0,6,0" /><TextBlock Text="−70 a &lt; −60" FontFamily="{StaticResource MeasurementFont}" FontSize="{StaticResource TextMetadata}" /></StackPanel>
+                            <StackPanel Orientation="Horizontal"><Rectangle Width="10" Height="10" Fill="{StaticResource SignalWeak}" Margin="0,0,6,0" /><TextBlock Text="−80 a &lt; −70" FontFamily="{StaticResource MeasurementFont}" FontSize="{StaticResource TextMetadata}" /></StackPanel>
+                            <StackPanel Orientation="Horizontal"><Rectangle Width="10" Height="10" Fill="{StaticResource SignalVeryWeak}" Margin="0,0,6,0" /><TextBlock Text="&lt; −80" FontFamily="{StaticResource MeasurementFont}" FontSize="{StaticResource TextMetadata}" /></StackPanel>
+                        </UniformGrid>
+                        <TextBlock Text="Cinza: não medido, sem RSSI ou marcação alterada. R = roteador." Style="{StaticResource Caption}" FontSize="{StaticResource TextMetadata}" Margin="0,8,0,0" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+            <DockPanel Grid.Column="2">
+                <StackPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
+                    <Border Background="{StaticResource Surface}" CornerRadius="{StaticResource ControlRadius}" Padding="12" Margin="0,0,0,12"
+                            BorderBrush="{Binding SelectedPointFeedback.Band, Converter={StaticResource SignalBrush}}" BorderThickness="0,3,0,0"
+                            Visibility="{Binding HasSelectedMeasurements, Converter={StaticResource BoolVisibility}}">
+                        <StackPanel><TextBlock Text="ÚLTIMA COLETA NESTE PONTO" Style="{StaticResource Eyebrow}" />
+                            <TextBlock Text="{Binding LatestRssi}" FontFamily="{StaticResource MeasurementFont}" FontSize="{StaticResource TextSummary}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                            <TextBlock Text="{Binding LatestRssiHint}" Style="{StaticResource Caption}" FontSize="{StaticResource TextMetadata}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{StaticResource WarningSurface}" BorderBrush="{StaticResource WarningBorder}" BorderThickness="1" CornerRadius="{StaticResource ControlRadius}" Padding="12" Margin="0,0,0,8" Visibility="{Binding Probe.HasPendingSave, Converter={StaticResource BoolVisibility}}">
+                        <StackPanel><TextBlock Text="Coleta ainda não salva" FontWeight="SemiBold" Foreground="{StaticResource WarningInk}" />
+                            <TextBlock Text="{Binding Probe.Error}" Style="{StaticResource Caption}" Margin="0,4,0,8" />
+                            <Button Content="Escolher pasta dos JSONs…" Command="{Binding Probe.ChooseFolderCommand}" Margin="0,0,0,8" />
+                            <Button Content="Tentar salvar a coleta" Command="{Binding RetrySessionSaveCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,0,8" />
+                            <Button Content="Descartar coleta…" Command="{Binding Probe.DiscardCommand}" Style="{StaticResource QuietButton}" />
+                        </StackPanel>
+                    </Border>
+                    <StackPanel Visibility="{Binding Probe.IsBusy, Converter={StaticResource BoolVisibility}}" Margin="0,0,0,8">
+                        <TextBlock Text="{Binding Probe.Signal.Value}" FontSize="28" FontFamily="{StaticResource MeasurementFont}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Probe.Signal.ProgressLabel}" Style="{StaticResource Caption}" />
+                        <ProgressBar Value="{Binding Probe.Signal.ProgressValue, Mode=OneWay}" Maximum="100" Height="4" Margin="0,8,0,8" Foreground="{StaticResource Accent}" />
+                        <TextBlock Text="{Binding Probe.Status}" Style="{StaticResource Caption}" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Probe.Error}" Style="{StaticResource Caption}" Foreground="{StaticResource ErrorInk}" Margin="0,0,0,8" Visibility="{Binding Probe.HasError, Converter={StaticResource BoolVisibility}}" />
+                    <TextBlock Text="{Binding MeasurementHint}" Style="{StaticResource Caption}" Margin="0,0,0,12" />
+                    <Button Content="Medir neste ponto · 60 s" Command="{Binding MeasureCommand}" Style="{StaticResource PrimaryButton}" />
+                    <Button Content="Parar e salvar parcial" Command="{Binding Probe.CancelCommand}" Margin="0,8,0,0">
+                        <Button.Style><Style TargetType="Button" BasedOn="{StaticResource QuietButton}"><Style.Triggers><Trigger Property="IsEnabled" Value="False"><Setter Property="Visibility" Value="Collapsed" /></Trigger></Style.Triggers></Style></Button.Style>
+                    </Button>
+                    <TextBlock Text="O projeto é salvo antes e depois da coleta. A varredura Wi-Fi pode influenciar o RTT." Style="{StaticResource Caption}" FontSize="{StaticResource TextMetadata}" Margin="0,8,0,0" />
+                </StackPanel>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,8,0">
+                        <DockPanel Margin="0,0,0,12"><Button Content="+ Novo ponto" Command="{Binding AddPointCommand}" DockPanel.Dock="Right" FontSize="{StaticResource TextSmall}" />
+                            <TextBlock Text="PONTOS DE MEDIÇÃO" Style="{StaticResource Eyebrow}" VerticalAlignment="Center" /></DockPanel>
+                        <ListBox ItemsSource="{Binding PointFeedback}" SelectedValuePath="PointId" SelectedValue="{Binding SelectedPointId}"
+                                 IsEnabled="{Binding CanEdit}" MinHeight="60" MaxHeight="164" BorderBrush="{StaticResource Line}" Background="{StaticResource Surface}" AutomationProperties.Name="Pontos de medição">
+                            <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="AutomationProperties.Name" Value="{Binding Name}" /><Setter Property="MinHeight" Value="44" /><Setter Property="Padding" Value="8,4" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style></ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate><DataTemplate><Grid ToolTip="{Binding Detail}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <Ellipse Width="8" Height="8" Fill="{Binding Band, Converter={StaticResource SignalBrush}}" VerticalAlignment="Center" HorizontalAlignment="Left" />
+                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="{StaticResource TextSmall}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBlock Grid.Column="2" Text="{Binding ValueLabel}" FontFamily="{StaticResource MeasurementFont}" FontSize="{StaticResource TextMetadata}" VerticalAlignment="Center" MaxWidth="130" TextTrimming="CharacterEllipsis" />
+                            </Grid></DataTemplate></ListBox.ItemTemplate>
+                        </ListBox>
+                        <StackPanel Visibility="{Binding HasSelectedPoint, Converter={StaticResource BoolVisibility}}" Margin="0,12,0,0">
+                            <Label Content="Nome do p_onto" Target="{Binding ElementName=PointNameInput}" Style="{StaticResource FormLabel}" />
+                            <TextBox x:Name="PointNameInput" Text="{Binding SelectedPointName, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}" MaxLength="120" />
+                            <Button Content="Ajustar posição do ponto" Command="{Binding MovePointCommand}" Style="{StaticResource QuietButton}" HorizontalAlignment="Left" />
+                            <TextBlock Text="{Binding SelectedMeasurementSummary}" Style="{StaticResource Caption}" FontSize="{StaticResource TextMetadata}" />
+                        </StackPanel>
+                        <Expander Header="Planta e roteador" Margin="0,16,0,0">
+                            <StackPanel>
+                                <Label Content="Nome do _projeto" Target="{Binding ElementName=ProjectNameInput}" Style="{StaticResource FormLabel}" Margin="0,8,0,0" />
+                                <TextBox x:Name="ProjectNameInput" Text="{Binding ProjectName, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEditProject}" MaxLength="120" />
+                                <TextBlock Text="{Binding ImageDescription}" Style="{StaticResource Caption}" FontSize="{StaticResource TextMetadata}" Margin="0,8,0,0" />
+                                <TextBlock Text="{Binding ProjectFileLabel}" Style="{StaticResource Caption}" TextWrapping="Wrap" FontSize="{StaticResource TextMetadata}" Margin="0,4,0,0" />
+                                <Button Content="Salvar como…" Command="{Binding SaveAsCommand}" Style="{StaticResource QuietButton}" HorizontalAlignment="Left" Margin="0,4,0,0" />
+                                <TextBlock Text="ROTEADOR" Style="{StaticResource Eyebrow}" Margin="0,12,0,0" />
+                                <TextBlock Text="{Binding RouterStatus}" Style="{StaticResource Caption}" Margin="0,8,0,12" />
+                                <Button Content="Marcar roteador na planta" Command="{Binding MarkRouterCommand}" />
+                            </StackPanel>
+                        </Expander>
+                    </StackPanel>
+                </ScrollViewer>
+            </DockPanel>
+        </Grid>
+        <Grid Grid.Row="3" Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <TextBlock Text="Marcação manual · imagem sem escala · o roteador desenhado não identifica o BSSID" Style="{StaticResource Caption}" FontSize="{StaticResource TextMetadata}" />
+            <TextBlock Grid.Column="1" Text="{Binding SaveState}" Style="{StaticResource Caption}" FontSize="{StaticResource TextMetadata}" Margin="16,0,0,0" />
+        </Grid>
+    </Grid>
+</Window>

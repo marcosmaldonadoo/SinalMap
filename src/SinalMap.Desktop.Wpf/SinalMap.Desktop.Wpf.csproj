@@ -8,5 +8,6 @@
     <ProjectReference Include="../SinalMap.Presentation/SinalMap.Presentation.csproj" />
     <ProjectReference Include="../SinalMap.Infrastructure.Windows/SinalMap.Infrastructure.Windows.csproj" />
     <Resource Include="../../docs/assets/sinalmap-logo.png" Link="Assets/sinalmap-logo.png" />
+    <EmbeddedResource Include="../../LICENSE" LogicalName="SinalMap.LICENSE" />
   </ItemGroup>
 </Project>

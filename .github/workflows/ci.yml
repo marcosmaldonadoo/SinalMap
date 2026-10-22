@@ -28,6 +28,10 @@ jobs:
       - run: dotnet restore ${{ matrix.target }}
       - run: dotnet build ${{ matrix.target }} -c Release --no-restore
       - run: dotnet test ${{ matrix.target }} -c Release --no-build --no-restore --logger trx --results-directory TestResults
+      - name: Verificar a distribuição em executável único e o pacote do console
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/Publish-Release.ps1 -ArtifactRoot "$env:RUNNER_TEMP/SinalMap-release"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -82,6 +82,7 @@ public sealed class ProbeViewModel : ObservableObject
     }
 
     public AsyncCommand RefreshCommand { get; }
+    public event Action<ProbeSession, string>? SessionSaved;
     public AsyncCommand MonitorCommand { get; }
     public AsyncCommand StartCommand { get; }
     public AsyncCommand OpenCommand { get; }
@@ -470,6 +471,7 @@ public sealed class ProbeViewModel : ObservableObject
         await Task.Run(() => store.SaveAsync(session, path, CancellationToken.None));
         pendingSession = null;
         SavedPath = path;
+        SessionSaved?.Invoke(session, path);
         Status = session.Cancelled ? "Sessão parcial salva após cancelamento." : "Coleta concluída e salva. Examine as métricas e ocorrências abaixo.";
         RefreshState();
     }
